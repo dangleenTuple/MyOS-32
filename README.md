@@ -1,4 +1,4 @@
-#FOLLOWING HOW TO MAKE AN OPERATING SYSTEM
-###(not proof of concept)
+# FOLLOWING HOW TO MAKE AN OPERATING SYSTEM
+### (not proof of concept)
 
-#TODO: finish writing README ;)
+# TODO: finish writing README ;)
