@@ -1,5 +1,4 @@
-#include <os.h>
-
+#include "../core/os.h"
 
 // The below extern block ensures these functions are accessible by C code, even though they might be written in C++.
 extern "C"
@@ -15,7 +14,7 @@ extern "C"
 void *__dso_handle;
 void *__stack_chk_guard(0);
 
-//Exception handling
+// Exception handling
 namespace __cxxabiv1
 {
 	__extension__ typedef int __guard __attribute__((mode(__DI__)));
@@ -35,7 +34,7 @@ int __cxa_atexit(void (*) (void *), void *, void *)
 }
 
 void _Unwind_Resume(){
-0}
+}
 
 void __cxa_finalize(void *){
 }
@@ -72,6 +71,8 @@ void operator delete(void *ptr)
 		//Frees physical contiguous memory in kernel
 		kfree(ptr);
 }
+
+void operator delete(void * ptr, size_t size) { ::operator delete(ptr); }
 
 #ifndef __arm__
 void* operator new(size_t len) 

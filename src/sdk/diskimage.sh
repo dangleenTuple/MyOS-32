@@ -2,62 +2,45 @@
 qemu-img create c.img 2M
 fdisk ./c.img  << EOF
 
-# Switch to Expert commands
-x
+x # Switch to Expert commands
 
-# Change number of cylinders (1-1048576)
-c
+c # Change number of cylinders (1-1048576) 
 4
 
-# Change number of heads (1-256, default 16):
-h
+h # Change number of heads (1-256, default 16):
 16
 
-# Change number of sectors/track (1-63, default 63)
-s
+s # Change number of sectors/track (1-63, default 63)
 63
 
-# Return to main menu
-r
+r # Return to main menu
 
-# Add a new partition
-n
+n # Add a new partition
 
-# Choose primary partition
-p
+p # Choose primary partition
 
-# Choose partition number
-1
+1 # Choose partition number
 
-# Choose first sector (1-4, default 1)
-1
+1 # Choose first sector (1-4, default 1)
 
-# Choose last sector, +cylinders or +size{K,M,G} (1-4, default 4)
-4
+4 # Choose last sector, +cylinders or +size{K,M,G} (1-4, default 4)
 
-# Toggle bootable flag
-a
+a # Toggle bootable flag
 
-# Choose first partition for bootable flag
-1
+1 # Choose first partition for bootable flag
 
-# Write table to disk and exit
-w
+w # Write table to disk and exit
 EOF
 fdisk -l -u ./c.img
 
-# Using fdisk -l -u c.img, you get: 63 * 512 = 32256.
-losetup -o 32256 /dev/loop1 ./c.img
+losetup -o 32256 /dev/loop1 ./c.img # Using fdisk -l -u c.img, you get: 63 * 512 = 32256.
 
-# We create a EXT2 filesystem on this new device using:
-mke2fs /dev/loop1
+mke2fs /dev/loop1 # We create a EXT2 filesystem on this new device using:
 
-# We copy our files on a mounted disk:
 mount  /dev/loop1 /mnt/
 cp -R bootdisk/* /mnt/
 umount /mnt/
 
-# Install GRUB on the disk:
 grub --device-map=/dev/null << EOF
 device (hd0) ./c.img
 geometry (hd0) 4 16 63
@@ -66,5 +49,4 @@ setup (hd0)
 quit
 EOF
 
-# And finally we detach the loop device:
 losetup -d /dev/loop1
