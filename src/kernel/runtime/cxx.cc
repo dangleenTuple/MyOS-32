@@ -1,5 +1,5 @@
 #include "../core/os.h"
-
+#include "../arch/x86/io.h"
 // The below extern block ensures these functions are accessible by C code, even though they might be written in C++.
 extern "C"
 {
@@ -62,6 +62,7 @@ struct IntRegs;
 //Prints error then goes into infinite loop
 void __attribute__((noreturn)) __stack_chk_fail()
 {
+	Io io;
 	io.print("Buffer Overflow (SSP Signal)\n");
 	for(;;) ;
 }
