@@ -1,5 +1,5 @@
-#include <os.h>
-#include <runtime/buffer.h>
+#include "../core/os.h"
+#include "buffer.h"
 
 
 

@@ -24,6 +24,6 @@
 #include "../arch/x86/io.h"
 #include "../arch/x86/architecture.h"
 #include "../arch/x86/vmm.h"
-#include "../arch/x86/process.h"
+#include "process.h"
 
 #endif

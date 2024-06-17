@@ -2,9 +2,9 @@
 #ifndef __MODULE__
 #define __MODULE__
 
-#include <runtime/types.h>
-#include <core/file.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/file.h"
+#include "../arch/x86/io.h"
 
 
 #define NO_FLAG	0

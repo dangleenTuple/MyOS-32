@@ -1,10 +1,10 @@
 
-#include <os.h>
-#include <core/file.h>
-#include <runtime/alloc.h>
-#include <runtime/libc.h>
-#include <core/filesystem.h>
-#include <module.h>
+#include "../core/os.h"
+#include "../core/file.h"
+#include "../runtime/alloc.h"
+#include "../runtime/libc.h"
+#include "../core/filesystem.h"
+#include "module.h"
 
 /* Inclusion de la liste des modules */
 #include "modules.conf"
