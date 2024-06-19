@@ -57,10 +57,9 @@ enum{
 	ERROR_MEMORY=-2,
 	PARAM_NULL=-3,
 	ERROR_PARAM=-4,
-	RETURN_FAILURE=-128 //Added by NoMaintener aka William. In case of error
+	RETURN_FAILURE=-128 //Added by NoMaintener aka William. In C, negative values indicate error. Not sure why we are using -128, 2^7...
 };
- 
- 
+
 /*
  *	Interruption handler
  */
