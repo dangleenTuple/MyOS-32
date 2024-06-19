@@ -1,16 +1,26 @@
 
-#include <os.h>
-#include <clock_x86.h>
+#include "../core/os.h"
+#include "clock_x86.h"
 
-#include <api/dev/ioctl.h>
+#include "../core/api/dev/ioctl.h"
 
+/*Handling the clock for our OS
+
+Port 0x70 - used to access Complementary Metal-Ocide-Semiconductor (CMOS)
+
+We can receive the system time during bootup from the digital logic clock on the CMOS chip
+
+Port 0x71 - data port used for 0x70 access when reading or writing registers on the CMOS chip
+*/
 
 static void GetWeekday(unsigned int *Weekday)
 {
 	unsigned int DataWeekday;
 
+	//Unlocks CMOS registers for access
 	io.outb(0x70, 0x95);
 
+	//0x06 gets LSD of the day of the month
 	io.outb(0x70, 6);
 	DataWeekday = io.inb(0x71);
 	if(DataWeekday<6) *Weekday = DataWeekday + 2;
@@ -23,14 +33,17 @@ static void GetDate(unsigned int *Year, unsigned int *Month, unsigned int *Day)
 
 	io.outb(0x70, 0x95);
 
+	//0x09 gets the year
 	io.outb(0x70, 9);
 	DataYear = io.inb(0x71);
 	*Year = DataYear - ((unsigned int) DataYear/16) * 6;
 
+	//0x08 gets the Month
 	io.outb(0x70, 8);
 	DataMonth = io.inb(0x71);
 	*Month = DataMonth - ((unsigned int) DataMonth/16) * 6;
 
+	//0x07 gets the MSD of the day of the month
 	io.outb(0x70, 7);
 	DataDay = io.inb(0x71);
 	*Day = DataDay - ((unsigned int) DataDay/16) * 6;
@@ -42,14 +55,17 @@ static void GetTime(unsigned int *Hour, unsigned int *Minute, unsigned int *Seco
 
 	io.outb(0x70, 0x95);
 
+	//0x04 gets the hour
 	io.outb(0x70, 4);
 	DataHour = io.inb(0x71);
 	*Hour = DataHour - ((unsigned int) DataHour/16) * 6;
 
+	//0x02 gets the minutes
 	io.outb(0x70, 2);
 	DataMinute = io.inb(0x71);
-	*Minute = DataMinute - ((unsigned int) DataMinute/16) * 6;	
-	
+	*Minute = DataMinute - ((unsigned int) DataMinute/16) * 6;
+
+	//0x00 gets the seconds
 	io.outb(0x70, 0);
 	DataSecond = io.inb(0x71);
 	*Second = DataSecond - ((unsigned int) DataSecond/16) * 6;

@@ -2,11 +2,11 @@
 #ifndef __CLOCK__
 #define __CLOCK__
 
-#include <runtime/types.h>
-#include <core/device.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/device.h"
+#include "../arch/x86/io.h"
 
-#include <api/dev/clock.h>
+#include "../core/api/dev/clock.h"
 
 class Clock_x86 : public Device
 {
