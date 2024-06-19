@@ -1,9 +1,16 @@
 
-#include <os.h>
-#include <bochsvbe.h>
+#include "../core/os.h"
+#include "bochsvbe.h"
 
-/* Driver video pour bios VBE/Bios */
+/* Video Driver for BIOS VBE/Bios 
 
+VBE = Video BIOS extension (https://wiki.osdev.org/VESA_Video_Modes)
+
+We need to use this in order to gain access to
+simple graphics 
+
+BGA = Bochs Graphic Adapter
+a simple display device which is similar to VGA but without legacy emulation */
 
 static void BgaWriteRegister(unsigned short IndexValue, unsigned short DataValue)
 {

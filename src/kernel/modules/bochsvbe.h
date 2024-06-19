@@ -2,12 +2,12 @@
 #ifndef __BOCHS_VBE__
 #define __BOCHS_VBE__
 
-#include <runtime/types.h>
-#include <core/device.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/device.h"
+#include "../arch/x86/io.h"
 
-#include <api/dev/ioctl.h>
-#include <api/dev/fb.h>
+#include "../core/api/dev/ioctl.h"
+#include "../core/api/dev/fb.h"
 
 
 #define VBE_DISPI_ENABLED (0x01)
