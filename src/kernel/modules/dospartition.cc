@@ -1,8 +1,8 @@
-#include <os.h>
-#include <dospartition.h>
+#include "../core/os.h"
+#include "dospartition.h"
 
 /*
- *	Flag indique le numero de partition
+ *	Flag indicates the partition number
  */
 File* dospartition_mount(char* name,u32 flag,File* dev){
 	DosPartition* dos=new DosPartition(name,dev,flag);
@@ -45,6 +45,11 @@ u32	DosPartition::open(u32 flag){
 	}
 	return ERROR_PARAM;
 }
+
+/*
+Read and write accesses the partition of the DOS by directly reading/writing to
+the device itself as long as we have all of the required informtation (position, buffer, size)
+*/
 
 u32	DosPartition::read(u32 pos,u8* buffer,u32 sizee){
 	if (partition_info!=NULL && device!=NULL){

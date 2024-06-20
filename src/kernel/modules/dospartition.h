@@ -2,13 +2,17 @@
 #ifndef __DOS_PARTITION__
 #define __DOS_PARTITION__
 
-#include <runtime/types.h>
-#include <core/file.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/file.h"
+#include "../io.h"
 
+//Master Boot Record Location
 #define DOS_PART_1	0x01BE
+//Second partition
 #define DOS_PART_2	0x01CE
+//Third partition
 #define DOS_PART_3	0x01DE
+//Fourth partition
 #define DOS_PART_4	0x01EE
 
 struct dos_partition {
