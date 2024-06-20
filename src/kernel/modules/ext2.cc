@@ -1,7 +1,5 @@
-
- 
-#include <os.h>
-#include <ext2.h>
+#include "../core/os.h"
+#include "ext2.h"
 
 
 File* ext2_mount(char* name,u32 flag,File* dev){
@@ -100,10 +98,18 @@ void ext2_get_disk_info(File*dev,Ext2 *fp)
 	ext2_disk* info=(ext2_disk*)kmalloc(sizeof(ext2_disk));
 	info->sb=(ext2_super_block*)kmalloc(sizeof(ext2_super_block));
 	info->dev=dev;
+
+	//Get the group count of the file system
 	int i, j;
+
+	//get superblock info (one superblock per file system, contains inode count, block count, etc.)
 	ext2_read_sb(dev,info->sb);
 	info->blocksize = 1024 << ((info->sb)->s_log_block_size);
+
+	//calculate block count (the ternary will cause the count to round up if the remainder is non-zero)
 	i = (info->sb->s_blocks_count / info->sb->s_blocks_per_group) + ((info->sb->s_blocks_count % info->sb->s_blocks_per_group) ? 1 : 0);
+
+	//calulcate inode count
 	j = (info->sb->s_inodes_count / info->sb->s_inodes_per_group) + ((info->sb->s_inodes_count % info->sb->s_inodes_per_group) ? 1 : 0);
 	info->groups = (i > j) ? i : j;
 	int gd_size = info->groups * ((int)sizeof(ext2_group_desc));
@@ -151,7 +157,7 @@ int ext2_is_directory(Ext2 *fp)
 char *ext2_read_file(ext2_disk *hd,ext2_inode *inode)
 {
 	File *dev=hd->dev;
-	
+
 	char *mmap_base, *mmap_head, *buf;
 
 	int *p, *pp, *ppp;
@@ -163,9 +169,23 @@ char *ext2_read_file(ext2_disk *hd,ext2_inode *inode)
 	pp = (int *) kmalloc(hd->blocksize);
 	ppp = (int *) kmalloc(hd->blocksize);
 
-	/* taille totale du fichier */
+	/* Total file size */
 	size = inode->i_size;
 	mmap_head = mmap_base = (char*)kmalloc(size);
+
+	/*
+		In order to read a single file, the size of it may cause us to run out of space to access information in it
+		directly. 
+
+		Direct block pointers only go up to 12 pointers for ext2. They access the file content immediately, so therefore they are
+		the most efficient way to access file content.
+
+		After that, inodes contain pointers for indirect blocks. If the file has even more content than this, then we would utilize 
+		the inode's bi-indirect (double indirect) and even possibly tri-indirect (triple indirect) block pointers.
+
+		When needing indirect pointers, every "layer" is an additional step of accessing another pointer in the inode. So none of
+		these pointers have "direct" access to the file content.
+	*/
 	/* direct block number */
 	for (i = 0; i < 12 && inode->i_block[i]; i++) {
         dev->read((u32)(inode->i_block[i] * hd->blocksize),(u8*) buf, (hd->blocksize));
@@ -175,6 +195,7 @@ char *ext2_read_file(ext2_disk *hd,ext2_inode *inode)
 		size -= n;
 	}
 	/* indirect block number */
+	//If inode contains a non-null indirect block at index 12 (first indirect)
 	if (inode->i_block[12]) {
 	    dev->read((u32)(inode->i_block[12] * hd->blocksize), (u8*) p, (hd->blocksize));
 
@@ -189,6 +210,7 @@ char *ext2_read_file(ext2_disk *hd,ext2_inode *inode)
 	}
 
 	/* bi-indirect block number */
+	//If inode contains non-null indirect block at index 13 (second indirect)
 	if (inode->i_block[13]) {
 	    dev->read((u32)(inode->i_block[13] * hd->blocksize), (u8*) p, (hd->blocksize));
 
@@ -204,6 +226,7 @@ char *ext2_read_file(ext2_disk *hd,ext2_inode *inode)
 		}
 	}
 	/* tri-indirect block number */
+	//If inode contains non-null indirect block at index 14 (third indirect)
 	if (inode->i_block[14]) {
         dev->read((u32)(inode->i_block[14] * hd->blocksize), (u8*) p,(hd->blocksize));
 		for (i = 0; i < (int)hd->blocksize / 4 && p[i]; i++) {
@@ -234,23 +257,30 @@ int ext2_scan(Ext2 *dir)
 	char *filename;
 	int f_toclose;
 	ext2_inode *inode = ext2_read_inode(dir->disk, dir->ext2inode);
+
+	//Must be a directory
 	if (dir->getType()!=TYPE_DIRECTORY) {
 		return ERROR_PARAM;
 	}
-	
+
+	//If the directory is not populated in the map, populate the map with the directory info using ext2_read_file
 	if (!dir->map) {
 		dir->map = ext2_read_file(dir->disk, inode);
 		f_toclose = 1;
 	} else {
 		f_toclose = 0;
 	}
-	
+
+	//Let's recursively get all of the directory info and its children into a tree
+	//dsize is the amount of space allocated for potential dentries
 	dsize = inode->i_size;
+	//dentries hold the filename and inode of each file and subdirectory in this directory
 	dentry = (ext2_directory_entry *) dir->map;
 	while (inode && dsize) {
 				filename = (char *) kmalloc(dentry->name_len + 1);
 				memcpy(filename,(char*)&(dentry->name), dentry->name_len);
 				filename[dentry->name_len] = 0;
+				//get the inode information from the dentry's inode number. Then load this into our structure.
 				if (strcmp(".", filename) && strcmp("..", filename)) {
 					if (dir->find(filename)==NULL) {
 						leaf= new Ext2(filename);
@@ -260,6 +290,8 @@ int ext2_scan(Ext2 *dir)
 							leaf->setType(TYPE_DIRECTORY);
 						else
 							leaf->setType(TYPE_FILE);
+
+						//Add newly gathered info about the file/subdirectory and put it in our directory tree
 						dir->addChild(leaf);
 						leaf->map = 0;
 						ext2_inode *inod=ext2_read_inode((ext2_disk*)leaf->disk,leaf->ext2inode);

@@ -2,9 +2,9 @@
 #ifndef __EXT2__
 #define __EXT2__
 
-#include <runtime/types.h>
-#include <core/file.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/file.h"
+#include "../arch/x86/io.h"
 
 /*
  *	Ext2 specification
