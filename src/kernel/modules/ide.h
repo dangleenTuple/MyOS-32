@@ -2,9 +2,9 @@
 #ifndef __IDE__
 #define __IDE__
 
-#include <runtime/types.h>
-#include <core/device.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/device.h"
+#include "../arch/x86/io.h"
 
 class Ide : public Device
 {
