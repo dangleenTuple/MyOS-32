@@ -1,13 +1,12 @@
-
 #ifndef __CONSOLE__
 #define __CONSOLE__
 
-#include <runtime/types.h>
-#include <core/file.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/file.h"
+#include "../arch/x86/io.h"
 
-#include <api/dev/ioctl.h>
-#include <api/dev/tty.h>
+#include "../core/api/dev/ioctl.h"
+#include "../core/api/dev/tty.h"
 
 class Console : public Device
 {
