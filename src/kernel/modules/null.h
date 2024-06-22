@@ -2,9 +2,9 @@
 #ifndef __NULL__
 #define __NULL__
 
-#include <runtime/types.h>
-#include <core/device.h>
-#include <io.h>
+#include "../runtime/types.h"
+#include "../core/device.h"
+#include "../arch/x86/io.h"
 
 class Null : public Device
 {
