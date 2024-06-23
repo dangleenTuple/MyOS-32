@@ -19,10 +19,10 @@ I added the below code snippet to the vagrant file to install the prerequisite s
 
 `config.vm.provision "shell", inline: <<-SHELL`
 
-     apt-get update
-     apt-get install nasm make build-essential grub qemu zip git -y
+`     apt-get update`
+`     apt-get install nasm make build-essential grub qemu zip git -y
 
-   `SHELL`
+`     SHELL`
 
 Keep in mind, if you have any issues with your vagrant file, the syntax of vagrant is Ruby.
 
