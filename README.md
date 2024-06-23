@@ -15,7 +15,9 @@ Debian consistently maintained a stable version of a 32-bit OS, in addition to t
 
 The virtual box (follow the installation instructions in the tutorial, this part is fine) I will be using is "generic-x32/debian9".
 
-I added the below code snippet to the vagrant file to install the prerequisite software:
+Run `vagrant init generic-x32/debian9`
+
+I added the below code snippet to the generated vagrant file to install the prerequisite software:
 
 ```
 config.vm.provision "shell", inline: <<-SHELL
