@@ -38,7 +38,6 @@ Our first goal would be to get the kernel to not only compile, but to have all t
 mbchk kernel.elf check. This will validate your kernel.elf file against the multiboot standard.
 
 \src  <br />
-<pre>
      \kernel  <br />
           \arch\x86 --- architecture and memory management <br />
           \core --- main kernel code, filesystems, system calls, APIs  <br />
@@ -53,7 +52,6 @@ mbchk kernel.elf check. This will validate your kernel.elf file against the mult
           \src\libc  <br />
           dishimage.sh  <br />
           qemu.sh  <br />
-</pre>
 
 This is everything we need to get a basic 32-bit OS to function. From here, we will look into each component and see how it plays a role. When I am finished, there will be
 comments explaining every single file that's in the code and hopefully put the missing pieces together from what's not written in the book.
