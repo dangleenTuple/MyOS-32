@@ -1,4 +1,4 @@
-# HOW TO MAKE A COMPUTER OPERATING SYSTEM IN C++ (functioning tutorial)
+ # HOW TO MAKE A COMPUTER OPERATING SYSTEM IN C++ (functioning tutorial)
 
 I started building a 32-bit OS following the tutorial [How To Make a Computer Operating System](https://github.com/SamyPesse/How-to-Make-a-Computer-Operating-System/tree/master).
 However, a lot of the steps were incomplete or unexplained. For the latest version, it did not compile probably due to some components being outdated.
@@ -17,12 +17,12 @@ The virtual box (follow the installation instructions in the tutorial, this part
 
 I added the below code snippet to the vagrant file to install the prerequisite software:
 
-`config.vm.provision "shell", inline: <<-SHELL`
-
-`     apt-get update` <br/>
-`     apt-get install nasm make build-essential grub qemu zip git -y`
-
-`     SHELL`
+```
+config.vm.provision "shell", inline: <<-SHELL
+     apt-get update
+     apt-get install nasm make build-essential grub qemu zip git -y
+   SHELL
+```
 
 Keep in mind, if you have any issues with your vagrant file, the syntax of vagrant is Ruby.
 
@@ -37,22 +37,23 @@ I had to use vagrant provision --debug since it was failing on the provisioning 
 Our first goal would be to get the kernel to not only compile, but to have all the correct components to produce the correct kernel.elf file that will pass against the
 mbchk kernel.elf check. This will validate your kernel.elf file against the multiboot standard.
 
-`\src`<br/>
-`     \kernel` <br/>
-`          \arch\x86 --- architecture and memory management `<br/>
-`          \core --- main kernel code, filesystems, system calls, APIs  `<br/>
-`          \modules --- device drivers (and their controllers)  `<br/>
-`          \runtime --- C++ (and sometimes C) code  `<br/>
-`          config.h --- all of the info about the kernel (which cpu processor we're using, etc.)  `<br/>
-`          Makefile --- the component that brings everything together and makes it compile!  `<br/>
-`     \sdk  `<br/>
-`          \bootdisk  `<br/>
-`          \include  `<br/>
-`          \lib  `<br/>
-`          \src\libc  `<br/>
-`          dishimage.sh  `<br/>
-`          qemu.sh`  <br/>
-
+```
+\src
+    \kernel
+        \arch\x86 --- architecture and memory management
+        \core --- main kernel code, filesystems, system calls, APIs
+        \modules --- device drivers (and their controllers)
+        \runtime --- C++ (and sometimes C) code
+        config.h --- all of the info about the kernel (which cpu processor we're using, etc.)
+        Makefile --- the component that brings everything together and makes it compile!
+    \sdk
+        \bootdisk
+        \include
+        \lib
+        \src\libc
+        dishimage.sh
+        qemu.sh
+```
 This is everything we need to get a basic 32-bit OS to function. From here, we will look into each component and see how it plays a role. When I am finished, there will be
 comments explaining every single file that's in the code and hopefully put the missing pieces together from what's not written in the book.
 
