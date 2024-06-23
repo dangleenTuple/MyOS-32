@@ -38,7 +38,7 @@ Our first goal would be to get the kernel to not only compile, but to have all t
 mbchk kernel.elf check. This will validate your kernel.elf file against the multiboot standard.
 
 \src  <br />
-    \kernel  <br />
+<p> \kernel  <br />
     
         \arch\x86 --- architecture and memory management
         
