@@ -20,7 +20,6 @@ I added the below code snippet to the vagrant file to install the prerequisite s
 `config.vm.provision "shell", inline: <<-SHELL
 
      apt-get update
-     
      apt-get install nasm make build-essential grub qemu zip git -y
    
    SHELL`
@@ -39,19 +38,33 @@ Our first goal would be to get the kernel to not only compile, but to have all t
 mbchk kernel.elf check. This will validate your kernel.elf file against the multiboot standard.
 
 \src
+
     \kernel
+
         \arch\x86 --- architecture and memory management
+        
         \core --- main kernel code, filesystems, system calls, APIs
+        
         \modules --- device drivers (and their controllers)
+        
         \runtime --- C++ (and sometimes C) code
+        
         config.h --- all of the info about the kernel (which cpu processor we're using, etc.)
+        
         Makefile --- the component that brings everything together and makes it compile!
+    
     \sdk
+        
         \bootdisk
+        
         \include
+        
         \lib
+        
         \src\libc
+        
         dishimage.sh
+        
         qemu.sh
 
 This is everything we need to get a basic 32-bit OS to function. From here, we will look into each component and see how it plays a role. When I am finished, there will be
