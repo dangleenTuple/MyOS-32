@@ -18,8 +18,10 @@ The virtual box (follow the installation instructions in the tutorial, this part
 I added the below code snippet to the vagrant file to install the prerequisite software:
 
 `config.vm.provision "shell", inline: <<-SHELL`
+
      apt-get update
      apt-get install nasm make build-essential grub qemu zip git -y
+
    `SHELL`
 
 Keep in mind, if you have any issues with your vagrant file, the syntax of vagrant is Ruby.
@@ -37,7 +39,7 @@ mbchk kernel.elf check. This will validate your kernel.elf file against the mult
 
 \src  <br />
      \kernel  <br />
-          \arch\x86 --- architecture and memory management
+          \arch\x86 --- architecture and memory management <br />
           \core --- main kernel code, filesystems, system calls, APIs  <br />
           \modules --- device drivers (and their controllers)  <br />
           \runtime --- C++ (and sometimes C) code  <br />
