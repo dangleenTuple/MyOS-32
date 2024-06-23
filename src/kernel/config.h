@@ -8,7 +8,7 @@
 #define KERNEL_LICENCE	"Apache License"	/* license */
 #define KERNEL_COMPUTERNAME	"test-pc"	/* default name for the machine */
 
-/* identifiant du processeur */
+/* Processor Identifier */
 #ifdef __x86__
 #define KERNEL_PROCESSOR_IDENTIFIER "x86"
 #else
