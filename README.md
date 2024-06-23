@@ -26,11 +26,11 @@ config.vm.provision "shell", inline: <<-SHELL
 
 Keep in mind, if you have any issues with your vagrant file, the syntax of vagrant is Ruby.
 
-Run vagrant up
+Run `vagrant up`
 
-If a failure occurred, you can get more details by running vagrant --help to see what is suited for the situation.
+If a failure occurred, you can get more details by running `vagrant --help` to see what is suited for the situation.
 
-I had to use vagrant provision --debug since it was failing on the provisioning step (when I realized that Ubuntu no longer supports a 32-bit system...)
+I had to use `vagrant provision --debug` since it was failing on the provisioning step (when I realized that Ubuntu no longer supports a 32-bit system...)
 
 ## PROJECT STRUCTURE
 
