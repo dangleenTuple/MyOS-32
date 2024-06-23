@@ -37,10 +37,12 @@ I had to use vagrant provision --debug since it was failing on the provisioning 
 Our first goal would be to get the kernel to not only compile, but to have all the correct components to produce the correct kernel.elf file that will pass against the
 mbchk kernel.elf check. This will validate your kernel.elf file against the multiboot standard.
 
-\src__
-    \kernel__
-        \arch\x86 --- architecture and memory management__
-        \core --- main kernel code, filesystems, system calls, APIs__
+\src  <br />
+    \kernel  <br />
+    
+        \arch\x86 --- architecture and memory management
+        
+        \core --- main kernel code, filesystems, system calls, APIs
         
         \modules --- device drivers (and their controllers)
         
