@@ -17,45 +17,51 @@ char* Architecture::detect(){
 /* Start and initialize the architecture */
 void Architecture::init(){
 	 io.print("Architecture x86, cpu=%s \n", detect());
-	
+
 	 io.print("Loading GDT \n");
-		 init_gdt();
-		 asm("	movw $0x18, %%ax \n \
-			movw %%ax, %%ss \n \
-			movl %0, %%esp"::"i" (KERN_STACK));
-		
+	 init_gdt();
+
+	 asm("	movw $0x18, %%ax \n \ //segment selector of 0x18 for kernel stack segment in GDT
+		movw %%ax, %%ss \n \  //copy ax content in ss register (default segment for stack memory)
+		movl %0, %%esp"::"i" (KERN_STACK)); //%0 (symbolic reference resolved to KERN_STACK during compilation) into ESP register (top of the kernel stack)
+
 	 io.print("Loading IDT \n");
-		 init_idt();
-		
-		
+	 init_idt();
+
+
 	 io.print("Configure PIC \n");
-		 init_pic();
-	 
+	 init_pic();
+
 	 io.print("Loading Task Register \n");
-		 asm("	movw $0x38, %ax; ltr %ax");	 
+	 asm("	movw $0x38, %ax; ltr %ax"); // move 0x38 in ax, then load task register (ltr)  with value in ax
 }
 
-/* Initialise the list of processus */
+/* Initialize the first process. It appears to be initializing a dummy process...
+   TODO: Operating Systems usually initialize a process that represents the kernel itself as the first one.
+   Should we come back to this?
+*/
 void Architecture::initProc(){
 	firstProc= new Process("kernel");
-	firstProc->setState(ZOMBIE);
+	firstProc->setState(ZOMBIE); //ZOMBIE = process that has been terminated but not cleaned up
 	firstProc->addFile(fsm.path("/dev/tty"),0);
 	firstProc->addFile(fsm.path("/dev/tty"),0);
 	firstProc->addFile(fsm.path("/dev/tty"),0);
-	
-	
+
 	plist=firstProc;
-	pcurrent=firstProc; 
+	pcurrent=firstProc;
 	pcurrent->setPNext(NULL);
 	process_st* current=pcurrent->getPInfo();
-	current->regs.cr3 = (u32) pd0;
+	current->regs.cr3 = (u32) pd0; //cr3 register is the Control Register 3 in x86 which holds the base address of the Page Directory (PD).
 }
 
 /* Reboot the computer */
 void Architecture::reboot(){
     u8 good = 0x02;
+
+    // Polling mechanism to ensure a specific hardware status bit is clear before initiating a reboot.
     while ((good & 0x02) != 0)
         good = io.inb(0x64);
+    // Once the second bit of "good" is set to 0, we will send the signal to reboot.
     io.outb(0x64, 0xFE);
 }
 
@@ -77,8 +83,12 @@ void Architecture::addProcess(Process* p){
 
 /* Fork a process */
 int Architecture::fork(process_st* info,process_st* father){
+	//Copy contents of parent process into "info"
 	memcpy((char*)info,(char*)father,sizeof(process_st));
+	//Create a copy of the PD of the father for the child process
 	info->pd = pd_copy(father->pd);
+
+	//TODO:  A complete fork system call would likely involve additional steps like setting up memory protection mechanisms, copying specific memory regions, and handling process state transitions. Look into this?
 }
 
 /* Initialise a new process */
@@ -89,16 +99,16 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 
 	char **param, **uparam;
 	u32 stackp;
-	u32 e_entry; 
+	u32 e_entry;
 
-	
 	int pid;
 	int i;
 
+	//Process ID assignment
 	pid = 1;
 
 	info->pid = pid;
-	
+
 	if (argc) {
 		param = (char**) kmalloc(sizeof(char*) * (argc+1));
 		for (i=0 ; i<argc ; i++) {
@@ -107,21 +117,26 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 		}
 		param[i] = 0;
 	}
-	
+
+	//Page directory creation per process
 	info->pd = pd_create();
 
 
+	//List to keep track of pages belonging to process
 	INIT_LIST_HEAD(&(info->pglist));
-
 
 	previous = arch.pcurrent->getPInfo();
 	current=info;
-	
+
+	//Send the memory address of the newly created PD to cr3, which is the control point for the MMU
 	asm("mov %0, %%eax; mov %%eax, %%cr3"::"m"((info->pd)->base->p_addr));
-	
+
+	//e_entry = entry point for the executable file format (ELF)
 	e_entry = (u32) load_elf(file,info);
 
-	if (e_entry == 0) {	
+
+	//Failure to load the elf, so let's cleanup and return
+	if (e_entry == 0) {
 		for (i=0 ; i<argc ; i++) 
 			kfree(param[i]);
 		kfree(param);
@@ -133,6 +148,7 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 	}
 
 
+	//calculate initial stack pointer value for the new process
 	stackp = USER_STACK - 16;
 
 
@@ -145,37 +161,39 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 			uparam[i] = (char*) stackp;
 		}
 
-		stackp &= 0xFFFFFFF0;	
+		//Stack pointer aligned on a boundary that is a multiple of 4 (by clearing the least significant four bits)
+		stackp &= 0xFFFFFFF0;
 
-		// Creation des arguments de main() : argc, argv[]... 
+		// Creation of arguments for main() : argc, argv[]...
 		stackp -= sizeof(char*);
 		*((char**) stackp) = 0;
 
-		for (i=argc-1 ; i>=0 ; i--) {		
+		for (i=argc-1 ; i>=0 ; i--) {
 			stackp -= sizeof(char*);
-			*((char**) stackp) = uparam[i]; 
+			*((char**) stackp) = uparam[i];
 		}
 
-		stackp -= sizeof(char*);	
-		*((char**) stackp) = (char*) (stackp + 4); 
+		stackp -= sizeof(char*);
+		*((char**) stackp) = (char*) (stackp + 4);
 
-		stackp -= sizeof(char*);	
-		*((int*) stackp) = argc; 
+		stackp -= sizeof(char*);
+		*((int*) stackp) = argc;
 
 		stackp -= sizeof(char*);
 
-		for (i=0 ; i<argc ; i++) 
+		for (i=0 ; i<argc ; i++)
 			kfree(param[i]);
 
 		kfree(param);
 		kfree(uparam);
 	}
 
-	
+
+	// Allocate page of memory from heap; this page will be used as the kernel stack for the new process
 	kstack = get_page_from_heap();
 
 
-	// Initialise le reste des registres et des attributs 
+	// Initialize the rest of the registers and attributes TODO: where are these numbers defined?
 	info->regs.ss = 0x33;
 	info->regs.esp = stackp;
 	info->regs.eflags = 0x0;
@@ -209,7 +227,7 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 	arch.pcurrent = (Process*) previous->vinfo;
 	current=arch.pcurrent->getPInfo();
 	asm("mov %0, %%eax ;mov %%eax, %%cr3":: "m"(current->regs.cr3));
-	
+
 	return 1;
 }
 
@@ -217,7 +235,7 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 // Destroy a process
 void Architecture::destroy_process(Process* pp){
 	disable_interrupt();
-	
+
 	u16 kss;
 	u32 kesp;
 	u32 accr3;
