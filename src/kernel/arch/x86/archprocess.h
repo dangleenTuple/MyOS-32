@@ -25,8 +25,14 @@ extern "C" {
 			u16 ss0;
 		} kstack __attribute__ ((packed));
 
-		// Caution: with task switch
-		struct page_directory *pd;	
+		// Caution: with task switch or modifying pd
+		/* Reasons for concern may include:
+			- Race conditions
+			- Data corruption
+			- Disrupt memory access patterns
+			- Unexpected behavior
+		 */
+		struct page_directory *pd;
 
 		list_head pglist;
 
@@ -41,7 +47,7 @@ extern "C" {
 		void* sigfn[32];
 
 		void*	vinfo;
-		
+
 	} __attribute__ ((packed));
 }
 
