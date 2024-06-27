@@ -28,18 +28,18 @@ class Architecture
 		void	destroy_all_zombie();
 		void	change_process_father(Process* p,Process* pere);
 		int		fork(process_st* info,process_st* father);	/* fork a process */
-		
-		
+
+
 		/** architecture public class attributes */
 		Process*	pcurrent;		/* the current processes */
 		Process*	plist;			/* the chain list of processes */
-		
-		
+
+
 	private:
 		/** architecture private attributes **/
 		u32			ret_reg[5];
 		Process* 	firstProc;
-		
+
 };
 
 /** standart starting architecture interface **/

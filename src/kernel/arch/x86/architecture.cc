@@ -91,7 +91,7 @@ int Architecture::fork(process_st* info,process_st* father){
 	//TODO:  A complete fork system call would likely involve additional steps like setting up memory protection mechanisms, copying specific memory regions, and handling process state transitions. Look into this?
 }
 
-/* Initialise a new process */
+/* Initialize a new process */
 int Architecture::createProc(process_st* info, char* file, int argc, char** argv){
 	page *kstack;
 	process_st *previous;
@@ -220,12 +220,18 @@ int Architecture::createProc(process_st* info, char* file, int argc, char** argv
 	info->b_heap = (char*) ((u32) info->e_bss & 0xFFFFF000) + PAGESIZE;
 	info->e_heap = info->b_heap;
 
+	// Reset signal handling behavior by assigning default signal handler to each signal number (0 to 31)
 	info->signal = 0;
 	for(i=0 ; i<32 ; i++)
 		info->sigfn[i] = (char*) SIG_DFL;
 
+	//switch from the current process to the previous process which allows the OS to resume execution of the previous process
+	//Keep in mind : just because we needed to create this process, it doesn't mean it's ready to execute. So we need to switch back to what *was* ready.
 	arch.pcurrent = (Process*) previous->vinfo;
 	current=arch.pcurrent->getPInfo();
+
+	//CR3 is a special register that holds the physical address of the PD.
+	//This essentially switches the CPU's context to the virtual address space of the new current process by loading the CR3 register with the new PD address.
 	asm("mov %0, %%eax ;mov %%eax, %%cr3":: "m"(current->regs.cr3));
 
 	return 1;
@@ -243,12 +249,11 @@ void Architecture::destroy_process(Process* pp){
 	page *pg;
 	process_st *proccurrent=(arch.pcurrent)->getPInfo();
 	process_st *pidproc=pp->getPInfo();
-	
-	
+
+
 	// Switch page to the process to destroy
 	asm("mov %0, %%eax ;mov %%eax, %%cr3"::"m" (pidproc->regs.cr3));
 
-	
 	// Free process memory:
 	//  - pages used by the executable code
 	//  - user stack
@@ -262,7 +267,7 @@ void Architecture::destroy_process(Process* pp){
 		list_del(p);
 		kfree(pg);
 	}
-	
+
 	release_page_from_heap((char *) ((u32)pidproc->kstack.esp0 & 0xFFFFF000));
 
 	// Free pages directory
@@ -271,7 +276,7 @@ void Architecture::destroy_process(Process* pp){
 	pd_destroy(pidproc->pd);
 
 	asm("mov %0, %%eax ;mov %%eax, %%cr3"::"m" (proccurrent->regs.cr3));
-	
+
 	// Remove from the list
 	if (plist==pp){
 		plist=pp->getPNext();
@@ -280,20 +285,22 @@ void Architecture::destroy_process(Process* pp){
 		Process* l=plist;
 		Process*ol=plist;
 		while (l!=NULL){
-			
 			if (l==pp){
 				ol->setPNext(pp->getPNext());
 			}
-			
 			ol=l;
 			l=l->getPNext();
 		}
 	}
-	
 	enable_interrupt();
 }
 
+/* Reasons why we might need to change the parent:
 
+	- A process may be orphaned (its parent process terminates) and we need to give it a new parent to avoid it becoming a zombie.
+	- Processes can be organized into groups, and changing the parent of a process can move a process out of one group into another.
+	- A system call might request this
+*/
 void Architecture::change_process_father(Process* pe, Process* pere){
 	Process* p=plist;
 	Process* pn=NULL;
@@ -302,12 +309,12 @@ void Architecture::change_process_father(Process* pe, Process* pere){
 		if (p->getPParent()==pe){
 			p->setPParent(pere);
 		}
-		
 		p=pn;
 	}
 }
 
 
+//Zombie cleanup
 void Architecture::destroy_all_zombie(){
 	Process* p=plist;
 	Process* pn=NULL;
@@ -317,7 +324,6 @@ void Architecture::destroy_all_zombie(){
 			destroy_process(p);
 			delete p;
 		}
-		
 		p=pn;
 	}
 }
@@ -342,7 +348,7 @@ void Architecture::disable_interrupt(){
 }
 
 /* Get a syscall argument */
-u32	Architecture::getArg(u32 n){
+u32 Architecture::getArg(u32 n){
 	if (n<5)
 		return ret_reg[n];
 	else
