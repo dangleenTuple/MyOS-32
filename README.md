@@ -78,6 +78,9 @@ For example, to get the current date for our system, we need information from th
 
 Instead, the driver allows us to write a simple file that interacts with the chip's registers (internal storage locations) to retrieve the data. The driver might then perform a conversion from Binary-Coded Decimal (BCD) format to a more standard format before providing the date to the program through a function like "GetDate." This function hides all the electrical details of how the clock works, making it easier for programmers to use.
 
+## ARCH/X86 (not complete)
+NOTE: The importance of using assembly in this portion of the OS is to have direct access to hardware. For instance, the CR3 register which we need to use often is a Control Register directly interacting with the Memory Management Unit (MMU) of the CPU. Assembly allows low-level manipulation of such hardware registers, providing fine-grained control over virtual memory management.
+
 ## AN ENTIRE WALK-THROUGH OF VIRTUAL MEMORY
 
 Let's start with a process. From the CPU's perspective, we don't know how much memory we may or may not use yet. A virtual address space is assigned which can be accessed from a page table that is dedicated to the process.
