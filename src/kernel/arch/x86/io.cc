@@ -1,7 +1,22 @@
 #include "../../core/os.h"
 
-Io* Io::last_io=&io;		/* definis la derniere io avant switch */
-Io* Io::current_io=&io;		/* interface actuel (clavier redirigé vers celle ci) */
+/*
+Printing to the screen console (IMPORTANT EXCERPT FROM CHAPTER 5)
+We are going to use VGA default mode (03h) to display some text to the user. The screen can be directly accessed using the video memory at 0xB8000.
+The screen resolution is 80x25 and each character on the screen is defined by 2 bytes: one for the character code, and one for the style flag.
+This means that the total size of the video memory is 4000B (80B25B2B).
+
+	- x,y: define the cursor position on the screen
+	- real_screen: define the video memory pointer
+	- putc(char c): print a unique character on the screen and manage cursor position
+	- printf(char s, ...)*: print a string
+*/
+
+
+
+
+Io* Io::last_io=&io;		/* Defines the last io before switch statement */
+Io* Io::current_io=&io;		/* Current interface (keyboard redirected to this one) */
 
 /* Video memory */
 char* Io::vidmem = (char*)RAMSCREEN;
@@ -47,12 +62,12 @@ u32	Io::inl(u32 ad){
 	return _v;
 }
 
-/* renvoie la position x du curseur */
+/* returns the X position of the cursor */
 u32	Io::getX(){
 	return (u32)x;
 }
 
-/* renvoie la position y du curseur */
+/* returns the Y position of the cursor */
 u32	Io::getY(){
 	return (u32)y;
 }
@@ -80,13 +95,13 @@ void Io::scrollup(unsigned int n)
 			y = 0;
 }
 
-/* sauvegarde la memoire video */
+/* save the video memory */
 void Io::save_screen(){
 	memcpy(screen,(char*)RAMSCREEN,SIZESCREEN);
 	real_screen=(char*)screen;
 }
 
-/* charge la memoire video */
+/* load the video memory */
 void Io::load_screen(){
 	memcpy((char*)RAMSCREEN,screen,SIZESCREEN);
 	real_screen=(char*)RAMSCREEN;
@@ -105,19 +120,19 @@ void Io::putc(char c){
 	kattr = 0x07;
 	unsigned char *video;
 	video = (unsigned char *) (real_screen+ 2 * x + 160 * y);
-	if (c == 10) {			
+	if (c == 10) {
 		x = 0;
 		y++;
-	} else if (c == 8) {	
+	} else if (c == 8) {
 		if (x) {
-				*(video + 1) = 0x0;
+			*(video + 1) = 0x0;
 			x--;
 		}
-	} else if (c == 9) {	
+	} else if (c == 9) {
 		x = x + 8 - (x % 8);
-	} else if (c == 13) {	
+	} else if (c == 13) {
 		x = 0;
-	} else {		
+	} else {
 			*video = c;
 			*(video + 1) = kattr;
 
