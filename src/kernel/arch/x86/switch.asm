@@ -1,11 +1,14 @@
 global do_switch
 
-do_switch:
-	; recuper l'adresse de *current 
-	mov esi, [esp]
-	pop eax			; depile @current
+; Context switching typically involves saving the state of the currently running process before switching to another.
+; The stack is a common data structure used to store temporary data and function call information.
 
-	; prepare les registres
+do_switch:
+	; Retrieves the address of the current process's state from the stack and loads the address of the current process context into esi
+	mov esi, [esp]
+	pop eax
+
+	; save current process onto global stack
 	push dword [esi+4]	; eax
 	push dword [esi+8]	; ecx
 	push dword [esi+12]	; edx
@@ -18,15 +21,16 @@ do_switch:
 	push dword [esi+52]	; fs
 	push dword [esi+54]	; gs
 
-	; enleve le mask du PIC
+	; Remove the mask from the (Programmable Interrupt Controller) PIC
+	; 0x20 = end-of-interrupt (EOI) signal
 	mov al, 0x20
 	out 0x20, al
 
-	; charge table des pages
+	; Load the page table
 	mov eax, [esi+56]
 	mov cr3, eax
 
-	; charge les registres
+	; restore the registers into the CPU so that it can immediately start working on the new context
 	pop gs
 	pop fs
 	pop es
@@ -39,5 +43,7 @@ do_switch:
 	pop ecx
 	pop eax
 
-	; retourne 
+	; When we pop these values, the corresponding CPU registers will be loaded with the retrieved values. The specific ordering of the pop instructions ensures that each retrieved value (copy of a saved register) is loaded into the appropriate CPU register
+
+	; return
 	iret
