@@ -1,5 +1,18 @@
 #include "../../core/os.h"
 
+/*
+     Implements a virtual memory manager (VMM) for a system with paging enabled. Here's a breakdown of the key components:
+
+	Heap: The kernel heap is allocated during the initial memory setup phase (Memory_init function) and serves as on-demand memory for the kernel itself during runtime.
+	When the system boots up, the Memory_init function is responsible for setting up the memory management structures. Within Memory_init, a portion of the reserved kernel
+	memory is designated as the kernel heap. The kern_heap variable is then initialized to point to the starting address of this allocated region. A specific amount of physical
+	memory in RAM will be dedicated for the kernel's exclusive use including reserving pages for kernel code, data structures and the kernel heap itself.
+
+	Bitmap: The mem_bitmap is an array of bytes representing the physical memory allocation state. A set bit indicates a page is used, while a clear bit indicates it's free.
+
+	Page Directory and Page Tables: The code uses a hierarchical page table structure. The pd0 variable points to the kernel page directory, which contains entries for page tables.
+	Each page table entry points to a physical page frame.
+*/
 extern "C" {
 	char *kern_heap;
 	list_head kern_free_vm;
@@ -10,11 +23,9 @@ extern "C" {
 	u8 mem_bitmap[RAM_MAXPAGE / 8];			/* bitmap allocation de pages (1 Go) */
 
 	u32 kmalloc_used = 0;
-	
-	
+
 	/*
-	 * Parcours le bitmap a la recherche d'une page libre et la marque
-	 * comme utilisee avant de retourner son adresse physique.
+	 * Iterates through the bitmap to find a free page and marks it as used before returning its physical address.
 	 */
 	char* get_page_frame(void)
 	{
@@ -33,11 +44,9 @@ extern "C" {
 	}
 
 
-	/* 
-	 * Recherche une page virtuelle libre dans l'espace d'adresses virtuelles du
-	 * noyau. La fonction demande ensuite une page physique libre a associer.
-	 * NOTE: ces pages sont dans l'espace d'adressage du noyau. Celui-ci est mis a
-	 * jour.
+	/*
+	 * Searches for a free virtual page in the kernel's virtual address space. The function then requests a free physical page to associate with it.
+	 * NOTE: these pages are in the kernel's address space, which is updated.
 	 */
 	page* get_page_from_heap(void)
 	{
@@ -45,32 +54,32 @@ extern "C" {
 		vm_area *area;
 		char *v_addr, *p_addr;
 
-		/* Prend une page physique libre */
+		/* Allocates a free physical page */
 		p_addr = get_page_frame();
 		if ((int)(p_addr) < 0) {
 			io.print ("PANIC: get_page_from_heap(): no page frame available. System halted !\n");
 		}
 
-		/* Verifie si il y a une page virtuelle libre */
+		/* Checks if there's a free virtual page */
 		if (list_empty(&kern_free_vm)) {
 			io.print ("PANIC: get_page_from_heap(): not memory left in page heap. System halted !\n");
 		}
 
-		/* Prend la premiere page virtuelle libre de disponible */
+		/* Takes the first available free virtual page */
 		area = list_first_entry(&kern_free_vm, vm_area, list);
 		v_addr = area->vm_start;
 
-		/* Met a jour la liste de pages libres dans l'espace virtuel du noyau */
+		/* Updates the list of free pages in the kernel's virtual address space */
 		area->vm_start += PAGESIZE;
 		if (area->vm_start == area->vm_end) {
 			list_del(&area->list);
 			kfree(area);
 		}
 
-		/* Met a jour l'espace d'adressage du noyau */
+		/* Updates the kernel's address space */
 		pd0_add_page(v_addr, p_addr, 0);
 
-		/* Renvoie la page */
+		/* Returns the page */
 		pg = (page*) kmalloc(sizeof(page));
 		pg->v_addr = v_addr;
 		pg->p_addr = p_addr;
@@ -85,7 +94,7 @@ extern "C" {
 		struct vm_area *next_area, *prev_area, *new_area;
 		char *p_addr;
 
-		/* Retrouve la page frame associee a v_addr et la libere */
+		/* Find the page frame associated with v_addr and free it */
 		p_addr = get_p_addr(v_addr);
 		if (p_addr) {
 			release_page_frame(p_addr);
@@ -95,17 +104,17 @@ extern "C" {
 			return 1;
 		}
 
-		/* Met a jour le repertoire de pages */
+		/* Update the page directory */
 		pd_remove_page(v_addr);
 
-		/* Met a jour la liste d'adresses virtuelles libres */
+		/* Update the list of free virtual addresses */
 		list_for_each_entry(next_area, &kern_free_vm, list) {
 			if (next_area->vm_start > v_addr)
 				break;
 		}
 
 		prev_area = list_entry(next_area->list.prev, struct vm_area, list);
-		
+
 		if (prev_area->vm_end == v_addr) {
 			prev_area->vm_end += PAGESIZE;
 			if (prev_area->vm_end == next_area->vm_start) {
@@ -134,9 +143,9 @@ extern "C" {
 
 
 
-	/* 
-	 * Initialise le bitmap memoire et cree le repertoire de pages du kernel.
-	 * Utilise un identity mapping tel que vaddr = paddr sur 4Mo 
+	/*
+	 * Initialize the memory bitmap and create the kernel's page directory.
+	 * Uses an identity mapping such that vaddr = paddr for the first 4MB.
 	 */
 	void Memory_init(u32 high_mem)
 	{
@@ -145,33 +154,33 @@ extern "C" {
 		struct vm_area *p;
 		struct vm_area *pm;
 
-		/* Numero de la derniere page */
+		/* Last page number */
 		pg_limit = (high_mem * 1024) / PAGESIZE;
 
-		/* Initialisation du bitmap de pages physiques */
+		/*  Initialize the physical page bitmap */
 		for (pg = 0; pg < pg_limit / 8; pg++)
-			mem_bitmap[pg] = 0;
+			mem_bitmap[pg] = 0; // Mark lower memory as free
 
 		for (pg = pg_limit / 8; pg < RAM_MAXPAGE / 8; pg++)
-			mem_bitmap[pg] = 0xFF;
+			mem_bitmap[pg] = 0xFF; // Mark upper memory as used
 
-		/* Pages reservees pour le noyau */
+		/* Pages reserved for the kernel */
 		for (pg = PAGE(0x0); pg < (int)(PAGE((u32) pg1_end)); pg++) {
-			set_page_frame_used(pg);
+			set_page_frame_used(pg);  // Mark kernel memory as used
 		}
 
-		/* Initialisation du repertoire de pages */
+		/* Initialize the page directory */
 		pd0[0] = ((u32) pg0 | (PG_PRESENT | PG_WRITE | PG_4MB));
 		pd0[1] = ((u32) pg1 | (PG_PRESENT | PG_WRITE | PG_4MB));
 		for (i = 2; i < 1023; i++)
 			pd0[i] =
 			    ((u32) pg1 + PAGESIZE * i) | (PG_PRESENT | PG_WRITE);
 
-		// Page table mirroring magic trick ! 
+		// Page table mirroring magic trick!
 		pd0[1023] = ((u32) pd0 | (PG_PRESENT | PG_WRITE));
 
 
-		/* Passe en mode pagination */
+		/* Enable paging mode */
 		asm("	mov %0, %%eax \n \
 			mov %%eax, %%cr3 \n \
 			mov %%cr4, %%eax \n \
@@ -181,12 +190,11 @@ extern "C" {
 			or %1, %%eax \n \
 			mov %%eax, %%cr0"::"m"(pd0), "i"(PAGING_FLAG), "i"(PSE_FLAG));
 
-		
-		/* Initialisation du heap du noyau utilise par kmalloc */
+		/* Initialize the kernel heap used by kmalloc */
 		kern_heap = (char *) KERN_HEAP;
 		ksbrk(1);
 
-		/* Initialisation de la liste d'adresses virtuelles libres */
+		/* Initialize the list of free virtual addresses */
 		p = (struct vm_area*) kmalloc(sizeof(struct vm_area));
 		p->vm_start = (char*) KERN_PG_HEAP;
 		p->vm_end = (char*) KERN_PG_HEAP_LIM;
@@ -199,7 +207,7 @@ extern "C" {
 	}
 
 	/*
-	 * Cree et initialise un rep. de pages pour une tache
+	 * Creates and initializes a page directory for a process.
 	 */
 	struct page_directory *pd_create(void)
 	{
@@ -207,19 +215,19 @@ extern "C" {
 		u32 *pdir;
 		int i;
 
-		/* Prend et initialise une page pour le Page Directory */
+		/* Allocate and initialize a page for the Page Directory */
 		pd = (struct page_directory *) kmalloc(sizeof(struct page_directory));
 		pd->base = get_page_from_heap();
 
-		/* 
-		 * Espace kernel. Les v_addr < USER_OFFSET sont adressees par la table
-		 * de pages du noyau (pd0[]).
+		/*
+		 * Kernel space. Virtual addresses < USER_OFFSET are addressed by the
+		 * kernel page table (pd0[]).
 		 */
 		pdir = (u32 *) pd->base->v_addr;
 		for (i = 0; i < 256; i++)
 			pdir[i] = pd0[i];
 
-		/* Espace utilisateur */
+		/* User space */
 		for (i = 256; i < 1023; i++)
 			pdir[i] = 0;
 
@@ -227,7 +235,7 @@ extern "C" {
 		pdir[1023] = ((u32) pd->base->p_addr | (PG_PRESENT | PG_WRITE));
 
 
-		/* Mise a jour de la liste des tables de pages de l'espace utilisateur */
+		/* Initialize the list of user space page tables */
 		INIT_LIST_HEAD(&pd->pt);
 
 		return pd;
@@ -237,7 +245,7 @@ extern "C" {
 			struct page *pg;
 			pg = (struct page *) kmalloc(sizeof(struct page));
 			pg->p_addr = get_page_frame();
-			/* todo copier le contenus de l'autre page */
+			/* TODO: copy the contents of the other page  */
 			pg->v_addr = (char *) (virtadr & 0xFFFFF000);
 			list_add(&pg->list, &current->pglist);
 			pd_add_page(pg->v_addr, pg->p_addr, PG_USER, current->pd);
@@ -245,7 +253,7 @@ extern "C" {
 
 
 	/*
-	 * Cree et initialise un rep. de pages pour une tache en copie d'une autre  (ne marche pas encore )
+	 * Creates and initializes a page directory for a process by copying another one (not working yet)
 	 */
 	struct page_directory *pd_copy(struct page_directory * pdfather)
 	{
@@ -253,19 +261,19 @@ extern "C" {
 		u32 *pdir;
 		int i;
 
-		/* Prend et initialise une page pour le Page Directory */
+		/* Allocate and initialize a page for the Page Directory */
 		pd = (struct page_directory *) kmalloc(sizeof(struct page_directory));
 		pd->base = get_page_from_heap();
 
-		/* 
-		 * Espace kernel. Les v_addr < USER_OFFSET sont adressees par la table
-		 * de pages du noyau (pd0[]).
+		/*
+		 * Kernel space. Virtual addresses < USER_OFFSET are addressed by the
+   		 * kernel page table (pd0[]).
 		 */
 		pdir = (u32 *) pd->base->v_addr;
 		for (i = 0; i < 256; i++)
 			pdir[i] = pd0[i];
 
-		/* Espace utilisateur */
+		/* User Space */
 		for (i = 256; i < 1023; i++)
 			pdir[i] = 0;
 
@@ -273,7 +281,7 @@ extern "C" {
 		pdir[1023] = ((u32) pd->base->p_addr | (PG_PRESENT | PG_WRITE));
 
 
-		/* Mise a jour de la liste des tables de pages de l'espace utilisateur */
+		/* Initialize the list of user space page tables */
 		INIT_LIST_HEAD(&pd->pt);
 
 		return pd;
@@ -284,7 +292,7 @@ extern "C" {
 		struct page *pg;
 		struct list_head *p, *n;
 
-		/* Libere les pages correspondant aux tables */
+		/* Free the pages corresponding to the tables  */
 		list_for_each_safe(p, n, &pd->pt) {
 			pg = list_entry(p, struct page, list);
 			release_page_from_heap(pg->v_addr);
@@ -292,16 +300,16 @@ extern "C" {
 			kfree(pg);
 		}
 
-		/* Libere la page correspondant au repertoire */
+		/* Free the page corresponding to the directory */
 		release_page_from_heap(pd->base->v_addr);
 		kfree(pd);
 
 		return 0;
 	}
 
-	/* 
-	 * Met a jour l'espace d'adressage du noyau.
-	 * NOTE : cet espace est commun a tous les repertoires de pages.
+	/*
+	 * Updates the kernel address space.
+ 	 * NOTE: This space is common to all page directories.
 	 */
 	int pd0_add_page(char *v_addr, char *p_addr, int flags)
 	{
@@ -313,65 +321,65 @@ extern "C" {
 			return 0;
 		}
 
-		/* On verifie que la table de page est bien presente */
+		/* Checks if the page table is present  */
 		pde = (u32 *) (0xFFFFF000 | (((u32) v_addr & 0xFFC00000) >> 20));
 		if ((*pde & PG_PRESENT) == 0) {
 			//error
 		}
 
-		/* Modification de l'entree dans la table de page */
+		// TODO: Handle the case where the page table is not present (error?)
 		pte = (u32 *) (0xFFC00000 | (((u32) v_addr & 0xFFFFF000) >> 10));
 		*pte = ((u32) p_addr) | (PG_PRESENT | PG_WRITE | flags);
 		set_page_frame_used(p_addr);
 		return 0;
 	}
 
-	/* 
-	 * Met a jour le repertoire de pages courant
-	 * input:
-	 * 	v_addr : adresse lineaire de la page 
-	 * 	p_addr : adresse physique de la page allouee 
-	 * 	pd     : structure qui doit etre mise a jour avec les pages allouees
-	 */
+	/*
+	 * Updates the current page directory.
+	 * Inputs:
+	 *  v_addr: linear address of the page
+	 *  p_addr: physical address of the allocated page
+	 *  flags: additional flags for the page table entry
+	 *  pd: the page directory that needs to be updated with the allocated pages
+ 	*/
 	int pd_add_page(char *v_addr, char *p_addr, int flags, struct page_directory *pd)
 	{
-		u32 *pde;		/* adresse virtuelle de l'entree du repertoire de pages */
-		u32 *pte;		/* adresse virtuelle de l'entree de la table de pages */
-		u32 *pt;		/* adresse virtuelle de la table de pages */
+		u32 *pde;		/* virtual address of the page directory entry */
+		u32 *pte;		/* virtual address of the page table entry */
+		u32 *pt;		/* virtual address of the page table */
 		struct page *pg;
 		int i;
 
 		//// io.print("DEBUG: pd_add_page(%p, %p, %d)\n", v_addr, p_addr, flags); /* DEBUG */
 
 		/*
-		 * La derniere entree du PageDir pointe sur lui-meme.
-		 * Les adresses commencant par 0xFFC00000 utilisent cette entree et il
-		 * s'ensuite que :
-		 * - les 10 bits en 0x003FF000 sont un index dans le PageDir et designent une
-		 *   PageTable. Les 12 derniers bits permettent de modifier une entree du PageTable
-		 * - l'adresse 0xFFFFF000 designe le PageDir lui-meme
-		 */
+   		 * The last entry of the PageDir points to itself.
+   		 * Addresses starting with 0xFFC00000 use this entry and it follows that:
+   		 *  - the 10 bits in 0x003FF000 are an index in the PageDir and designate a
+   		 *    PageTable. The last 12 bits allow modifying an entry in the PageTable
+   		 *  - the address 0xFFFFF000 designates the PageDir itself
+   		*/
 		pde = (u32 *) (0xFFFFF000 | (((u32) v_addr & 0xFFC00000) >> 20));
 
-		/* 
-		 * On cree la table de pages correspondante si elle n'est pas presente
+		/*
+		 * Create the corresponding page table if it's not present
 		 */
 		if ((*pde & PG_PRESENT) == 0) {
 
-			/* 
-			 * Allocation d'une page pour y mettre la table. 
+			/*
+			 * Allocate a page to store the table. 
 			 */
 			pg = get_page_from_heap();
 
-			/* On initialise la nouvelle table de pages */
+			/* Initialize the new page table  */
 			pt = (u32 *) pg->v_addr;
 			for (i = 1; i < 1024; i++)
 				pt[i] = 0;
 
-			/* On ajoute l'entree correspondante dans le repertoire */
+			/* Add the corresponding entry in the directory */
 			*pde = (u32) pg->p_addr | (PG_PRESENT | PG_WRITE | flags);
 
-			/* On rajoute la nouvelle page dans la structure  passee en parametre */
+			/* Add the new page to the structure passed as a parameter */
 			if (pd) 
 				list_add(&pg->list, &pd->pt);
 		}
@@ -389,7 +397,6 @@ extern "C" {
 		if (get_p_addr(v_addr)) {
 			pte = (u32 *) (0xFFC00000 | (((u32) v_addr & 0xFFFFF000) >> 10));
 			*pte = (*pte & (~PG_PRESENT));
-			
 			asm("invlpg %0"::"m"(v_addr));
 		}
 
@@ -397,13 +404,12 @@ extern "C" {
 	}
 
 	/*
-	 * Retourne l'adresse physique de la page associee a l'adresse virtuelle passee
-	 * en argument
+	 * Returns the physical address of the page associated with the passed virtual address.
 	 */
 	char *get_p_addr(char *v_addr)
 	{
-		u32 *pde;		/* adresse virtuelle de l'entree du repertoire de pages */
-		u32 *pte;		/* adresse virtuelle de l'entree de la table de pages */
+		u32 *pde;		/* virtual address of the page directory entry */
+		u32 *pte;		/* virtual address of the page table entry */
 
 		pde = (u32 *) (0xFFFFF000 | (((u32) v_addr & 0xFFC00000) >> 20));
 		if ((*pde & PG_PRESENT)) {
