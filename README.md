@@ -78,7 +78,11 @@ For example, to get the current date for our system, we need information from th
 
 Instead, the driver allows us to write a simple file that interacts with the chip's registers (internal storage locations) to retrieve the data. The driver might then perform a conversion from Binary-Coded Decimal (BCD) format to a more standard format before providing the date to the program through a function like "GetDate." This function hides all the electrical details of how the clock works, making it easier for programmers to use.
 
-## ARCH/X86 (not complete)
+## ARCH/X86
+Many of the functionalities listed in arch/x86 are tightly coupled with the x86 architecture. These components interact directly with x86-specific hardware features like memory management registers, interrupt controllers, and IO devices. So, this section is responsible for implementing kernel memory functions such as kmalloc, kfree etc., process management regarding setting up CPU registers and memory segments for new processes (and destroying them), an IO controller for a VGA display, ISRs, and the implementation of virtual memory management (please read the walk-through of VM) and the global descriptor table (GDT).
+
+The arch/x86 section may also contain architecture-specific optimizations for the kernel code in the future. For example, CPU Feature Detection and Utilization, Atomic operations, timer ISRs, system call handling (which could also be in core, but here we could implement system call gates and handling the transition between user-mode and kernel-mode when a system call occurs), etc. For now, we will keep it simple and add these features as needed!
+
 NOTE: The importance of using assembly in this portion of the OS is to have direct access to hardware. For instance, the CR3 register which we need to use often is a Control Register directly interacting with the Memory Management Unit (MMU) of the CPU. Assembly allows low-level manipulation of such hardware registers, providing fine-grained control over virtual memory management.
 
 ## AN ENTIRE WALK-THROUGH OF VIRTUAL MEMORY
