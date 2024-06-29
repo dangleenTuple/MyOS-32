@@ -124,3 +124,84 @@ The page directory is an index of all page tables that the OS is using except fo
 So what is it meant exactly by being "swapped"? Some inactive or empty page tables might be send to disk in case if we are running out of room in RAM. They can be later grabbed if we need them, and sometimes the swapping can be determined by an LRU algorithm if we don't have a lot of RAM. However, this isn't ideal since it is a lot of overhead to grab a page table from disk, so it's best to just put page tables there unless if we absolutely have to. This is why we try to keep everything in RAM if we can, even empty page tables.
 
 In conclusion, virtual memory is seemingly memory created by magic, but it's actually all managed within physical memory itself in a safe, efficient manner.
+
+
+## AN ENTIRE WALK-THROUGH OF LINUX FILE SYSTEMS
+
+I've always heard that "everything is a file" in linux, but is it actually?
+
+Memory blocks vs Files:
+
+- Files: Designed for persistence. They reside on the disk (HDD or SSD) and retain data even after a computer shutdown or power outage. This makes them ideal for storing program code, /documents, images, videos, programs, and any information that needs to be saved for long-term access.
+
+- Memory Blocks: Volatile storage. Data in memory blocks (RAM) is lost when the computer is turned off or if there's a power interruption. This impermanence makes them unsuitable for storing information that needs to survive beyond the current session. Memory blocks are typically used for temporary data for processes.
+
+- Some data might have a hybrid existence. For example, a large document might be partially loaded into memory for editing while the entire file remains on disk.
+
+Every file has an inode that serves as an index/unique identifier. Inodes also store essential information about the file, but not the actual data. This metadata includes:
+```
+    - File size
+    - File owner and group
+    - File permissions (read, write, execute)
+    - Time information (creation, modification, access)
+    - Block pointers: Locations of data blocks on the disk that hold the actual file content.
+```
+
+Inodes are scattered across the disk/storage device. When the kernel is mounting our file system, every file is all over the place initially. During mounting, the kernel doesn't physically move inodes around. Instead, it builds a logical directory entry tree in memory (RAM). However, a key distinction here is that the directory entry tree does not contain inodes themselves. It contains its own struct that has a file name and a pointer to the actual inode (which contains the real data blocks on disk). In the end, we have a tree that represents our file system when the kernel finishes mounting. Another key distinction here is that the entries do not copy anything. They are simply pointers to the real information (inode) on disk, so the file system tree is incredibly lightweight. 
+
+Sometimes, these pointers can point to the same inode. A hard link is created when a new directory entry is made that points to an existing inode. This essentially creates another way to access the same file content.
+
+Hard links are "copies" of a file but they are not true/deep copies - they are just two or more pointers pointing to the same thing, so only one file exists in memory.
+
+This can be incredibly useful for many programs needing the same dependencies for libraries - why have a bunch of copies when you can just use pointers here?
+
+Another real world example is Git - Git uses version control by indirectly using hard links to previous versions of a file.
+
+Similar to how virtual memory uses "lazy allocation", file systems use a method called "demand paging" which optimizes loading files by only mapping the block pointer to real data blocks on disk when the user or process "demands" it.
+
+If I were simply cruising through a filepath on an OS, the process would look like this:
+
+```
+    1.) The operating system reads the file system information, including directory structures and inodes, from the disk (HDD or SSD).
+    2.) Based on the provided filepath, the OS locates the relevant inode, which holds metadata about the file (size, permissions, etc.) and pointers to the data blocks (using direct and indirect pointers) on disk where the actual file content resides.
+    3.) The OS uses the information from the inodes to display the file structure (directory hierarchy) and file names on your screen. This allows you to navigate your file system and see what files exist.
+```
+We would simply be looking at the directory entry tree. But what if I actually open up one of these files or start a process that may need one or multiple files? What happens then when using demand paging?
+
+```
+    1.) File Access: When you open a file, the operating system first consults the associated inode.
+    2.) Inode Information: The inode provides details about the file, including the locations of its data blocks on the disk.
+    3.) Initial Load (Optional): Depending on the file system configuration and program behavior, the operating system might load a small portion of the file (e.g., the beginning) into memory for initial display or processing. This is not strictly demand paging but can be an optimization for certain scenarios.
+    4.) Demand Paging: The operating system employs demand paging. It might not load the entire file into memory at once.
+    5.) Block Translation: When the program needs to access a specific part of the file, the inode's block pointers are used to locate the data block on the disk.
+    6.) MMU and Memory Access: The MMU translates the disk address into a physical memory address, and the required data block is loaded into RAM if not already present.
+    7.) Program Access: Once the data block is loaded into memory, the program can access and process the requested file content. This cycle of demand paging (locating, translating, loading) repeats as you interact with different parts of the file.
+```
+
+
+Finally - how would our filesystem be available to access in the first place? Let's revisit the very first thing that happens when we turn on our computer - the bootloader.
+
+```
+1.) Bootloader
+
+Performs Power-On Self Test (POST) to check hardware functionality.
+Loads the kernel image from a designated location (e.g., boot partition).
+Passes any necessary parameters to the kernel and initiates the boot process.
+
+2.) Kernel Initialization
+
+The kernel takes over and initializes essential system components like memory management and device drivers. We can access these components before mounting the file system due to compression/decompression algorithms within the kernel image.
+
+3.) Root File System Mounting
+
+    - You specify the storage device (like a disk partition) and the file system type (ext2 (which we are using), XFS, etc.) to be mounted.
+    - You designate a directory within your existing file system structure to act as the "access point" for the mounted device. This directory becomes the virtual entry point for all the files and folders within the mounted file system.
+    - Integrates the mounted file system's directory structure into your overall file system hierarchy, making the files and folders accessible through the chosen mount point.
+
+If the mounting process is successful, the kernel can access the files and programs necessary to continue booting up.
+
+4.) Init Process and System Startup
+
+Once the root file system is mounted, the kernel launches the initial process (often named init) which is responsible for starting essential system services and user environments like a graphical desktop.
+
+```
