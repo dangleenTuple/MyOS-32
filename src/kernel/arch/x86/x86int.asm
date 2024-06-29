@@ -1,3 +1,4 @@
+; Interrupt handling for an x86 architecture system
 extern isr_default_int, do_syscalls, isr_schedule_int
 
 
@@ -27,18 +28,20 @@ _asm_int_%1:
 	SAVE_REGS
 	push %1
 	call isr_default_int
-	pop eax	;;a enlever sinon
+	pop eax	; to remove if not needed.
 	mov al,0x20
 	out 0x20,al
 	RESTORE_REGS
 	iret
 %endmacro
 
+; General Protection (GP) fault
+; Page Fault (PF) exception
 extern isr_GP_exc, isr_PF_exc 
 global _asm_syscalls, _asm_exc_GP, _asm_exc_PF
 _asm_syscalls:
 	SAVE_REGS
-	push eax                 ; transmission du numero d'appel
+	push eax                 ; transmission of the call number
 	call do_syscalls
 	pop eax
 	cli
