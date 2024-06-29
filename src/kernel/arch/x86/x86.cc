@@ -2,22 +2,45 @@
 #include "x86.h"
 #include "../../core/keyboard.h"
 
+/*
+In rare cases, you might want to use the GDT for specific memory organization beyond what virtual memory with paging offers.
+For instance, you could define separate code and data segments with the GDT to potentially enhance security by restricting access permissions.
+However, virtual memory with paging already provides robust memory protection mechanisms.
+
+Protected mode allows us to use all the possibilities of the microprocessor such as virtual memory management, paging and safe multi-tasking.
+
+We are going to use the GDT ("Global Descriptor Table") to define different memory segments:
+
+"code": kernel code, used to stored the executable binary code
+"data": kernel data
+"stack": kernel stack, used to stored the call stack during kernel execution
+"ucode": user code, used to stored the executable binary code for user program
+"udata": user program data
+"ustack": user stack, used to stored the call stack during execution in userland
+
+Other data structures:
+
+	idtdesc: Interrupt Descriptor Table (IDT) entries
+	tss: Task State Segment (TSS)
+	pgd: Page Directory
+	page: page frame (NOTE: different from a single page in virtual memory. A page frame is a block of physical memory in RAM mapped to a single page.)
+*/
 
 extern "C" {
 
 regs_t cpu_cpuid(int code)
 {
 	regs_t r;
-	asm volatile("cpuid":"=a"(r.eax),"=b"(r.ebx),
-                 "=c"(r.ecx),"=d"(r.edx):"0"(code));
+	// volatile: This keyword informs the compiler that the assembly code might modify registers or have other side effects, preventing optimizations that could alter the function's behavior.
+	asm volatile("cpuid":"=a"(r.eax),"=b"(r.ebx), "=c"(r.ecx),"=d"(r.edx):"0"(code));
 	return r;
 }
 
 
 u32 cpu_vendor_name(char *name)
 {
+		//Grab the cpu id from this line, put it into ebx, ecx, edx, then load from the regs to a string
 		regs_t r = cpu_cpuid(0x00);
-		
 		char line1[5];
 		line1[0] = ((char *) &r.ebx)[0];
 		line1[1] = ((char *) &r.ebx)[1];
@@ -31,17 +54,18 @@ u32 cpu_vendor_name(char *name)
 		line2[2] = ((char *) &r.ecx)[2];
 		line2[3] = ((char *) &r.ecx)[3];
 		line2[4] = '\0';
-		
+
 		char line3[5];
 		line3[0] = ((char *) &r.edx)[0];
 		line3[1] = ((char *) &r.edx)[1];
 		line3[2] = ((char *) &r.edx)[2];
 		line3[3] = ((char *) &r.edx)[3];
 		line3[4] = '\0';
-							
+
 		strcpy(name, line1);
 		strcat(name, line3);
 		strcat(name, line2);
+		//Return expected length
 		return 15;
 }
 
@@ -94,7 +118,7 @@ void init_gdt(void)
 	init_gdt_desc(0x0, 0xFFFFF, 0xF3, 0x0D, &kgdt[5]);	/* udata */
 	init_gdt_desc(0x0, 0x0, 0xF7, 0x0D, &kgdt[6]);		/* ustack */
 
-	init_gdt_desc((u32) & default_tss, 0x67, 0xE9, 0x00, &kgdt[7]);	/* descripteur de tss */
+	init_gdt_desc((u32) & default_tss, 0x67, 0xE9, 0x00, &kgdt[7]);	/* TSS Descriptor */
 
 	/* initialize the gdtr structure */
 	kgdtr.limite = GDTSIZE * 8;
@@ -106,7 +130,7 @@ void init_gdt(void)
 	/* load the gdtr registry */
 	asm("lgdtl (kgdtr)");
 
-	/* initiliaz the segments */
+	/* init the segments */
 	asm("   movw $0x10, %ax	\n \
             movw %ax, %ds	\n \
             movw %ax, %es	\n \
@@ -114,7 +138,6 @@ void init_gdt(void)
             movw %ax, %gs	\n \
             ljmp $0x08, $next	\n \
             next:		\n");
-			
 }
 
 
@@ -157,7 +180,7 @@ void do_syscalls(int num){
 }
 
 
-
+//ISR for keyboard?
 void isr_kbd_int(void)
 {
 	u8 i;
@@ -173,7 +196,7 @@ void isr_kbd_int(void)
 	i = io.inb(0x60);
 	i--;
 
-	if (i < 0x80) {		/* touche enfoncee */
+	if (i < 0x80) {		/* key pressed */
 		switch (i) {
 		case 0x29:
 			lshift_enable = 1;
@@ -219,7 +242,7 @@ void isr_kbd_int(void)
 				io.current_io->putctty(kbdmap[i * 4 + (lshift_enable || rshift_enable)]);*/
 			break;
 		}
-	} else {		/* touche relachee */
+	} else {		/* key released */
 		i -= 0x80;
 		switch (i) {
 		case 0x29:
@@ -403,19 +426,18 @@ void schedule(){
 	if (pcurrent==0)
 		return;
 
-	if (pcurrent->getPNext() == 0 && plist==pcurrent)	//si le proc est seul
+	if (pcurrent->getPNext() == 0 && plist==pcurrent)	//if pcurrent is the only node in the list (potentially an empty list)
 		return;
 
 	process_st* current=pcurrent->getPInfo();
 	process_st *p;
 	int i, newpid;
 
-	/* Stocke dans stack_ptr le pointeur vers les registres sauvegardes */
+	/* Store the pointer to the saved registers in stack_ptr */
 	asm("mov (%%ebp), %%eax; mov %%eax, %0": "=m"(stack_ptr):);
 	//asm("mov (%%eip), %%eax; mov %%eax, %0": "=m"(current->regs.eip):);
-	
 	//io.print("stack_ptr : %x \n",stack_ptr);
-		/* Sauver les registres du processus courant */
+		/* Save the registers of the current process */
 		current->regs.eflags = stack_ptr[16];
 		current->regs.cs = stack_ptr[15];
 		current->regs.eip = stack_ptr[14];
@@ -432,20 +454,19 @@ void schedule(){
 		current->regs.gs = stack_ptr[2];
 
 	
-		/* 
-		 * Sauvegarde le contenu des registres de pile (ss, esp)
-		 * au moment de l'interruption. Necessaire car le processeur
-		 * empile ou non ces valeurs selon le contexte de l'interruption.
+		/*
+		 Save the contents of the stack registers (ss, esp) at the time of the interrupt.
+		 This is necessary because the processor may or may not stack these values depending on the context of the interrupt.
 		 */
-		if (current->regs.cs != 0x08) {	/* mode utilisateur */
+		if (current->regs.cs != 0x08) {	/* User mode */
 			current->regs.esp = stack_ptr[17];
 			current->regs.ss = stack_ptr[18];
-		} else {	/* pendant un appel systeme */
-			current->regs.esp = stack_ptr[9] + 12;	/* vaut : &stack_ptr[17] */
+		} else {	/* during a system call */
+			current->regs.esp = stack_ptr[9] + 12;	/* equal to &stack_ptr[17] */
 			current->regs.ss = default_tss.ss0;
 		}
 
-		/* Sauver le TSS de l'ancien processus */
+		/* Save the TSS of the old process */
 		current->kstack.ss0 = default_tss.ss0;
 		current->kstack.esp0 = default_tss.esp0;
 	
@@ -481,11 +502,11 @@ void schedule(){
 }
 
 /* 
- * switch_to_task(): Prepare la commutation de tache effectuee par do_switch().
- * Le premier parametre indique le pid du processus a charger.
- * Le mode indique si ce processus etait en mode utilisateur ou en mode kernel
- * quand il a ete precedement interrompu par le scheduler.
- * L'empilement des registres sur la pile change selon le cas.
+ * switch_to_task(): Prepare the task switching performed by do_switch().
+ * The first parameter indicates the pid of the process to load.
+ * Mode indicates whether this process was in user mode or kernel mode
+ * when it was previously interrupted by the scheduler.
+ * The stacking of registers on the stack changes depending on the case.
  */
 void switch_to_task(process_st* current, int mode)
 {
@@ -494,20 +515,20 @@ void switch_to_task(process_st* current, int mode)
 	u16 kss, ss, cs;
 	int sig;
 	
-	/* Traite les signaux */
+	/* Processes signals */
 
 		if ((sig = dequeue_signal(current->signal))) 
 			handle_signal(sig);
 	
-	/* Charge le TSS du nouveau processus */
+	/* Loads the TSS of the new process */
 	default_tss.ss0 = current->kstack.ss0;
 	default_tss.esp0 = current->kstack.esp0;
 
 	/* 
-	 * Empile les registres ss, esp, eflags, cs et eip necessaires a la
-	 * commutation. Ensuite, la fonction do_switch() restaure les
-	 * registres, la table de page du nouveau processus courant et commute
-	 * avec l'instruction iret.
+	 * Stacks the ss, esp, eflags, cs and eip registers necessary for the
+         * switching. Then, the do_switch() function restores the
+         * registers, page table of the new current process and switches
+         * with the iret instruction.
 	 */
 	ss = current->regs.ss;
 	cs = current->regs.cs;
@@ -515,7 +536,7 @@ void switch_to_task(process_st* current, int mode)
 	
 
 	
-	/* Prepare le changement de pile noyau */
+	/* Prepare the kernel stack switch */
 	if (mode == USERMODE) {
 		kss = current->kstack.ss0;
 		kesp = current->kstack.esp0;
@@ -606,11 +627,11 @@ int handle_signal(int sig)
 
 		asm("mov %0, %%eax; mov %%eax, %%cr3"::"m"(current->regs.cr3));
 		
-		// Code assembleur qui appelle sys_sigreturn() 
+		// Assembly code that calls sys_sigreturn() 
 		esp[19] = 0x0030CD00;
 		esp[18] = 0x00000EB8;
 
-		// Sauvegarde des registres 
+		// Save the registers 
 		esp[17] = current->kstack.esp0;
 		esp[16] = current->regs.ss;
 		esp[15] = current->regs.esp;
@@ -629,14 +650,14 @@ int handle_signal(int sig)
 		esp[2] = current->regs.fs;
 		esp[1] = current->regs.gs;
 
-		// Adresse de retour pour %eip 
+		// Return address for %eip
 		esp[0] = (u32) &esp[18];
 
 
 		current->regs.esp = (u32) esp;
 		current->regs.eip = (u32) current->sigfn[sig];
 
-		// Efface le signal et retablit le handler par defaut *
+		// Clear the signal and restore the default handler
 		current->sigfn[sig] = (void*) SIG_DFL;
 		if (sig != SIGCHLD)
 			clear_signal(&(current->signal), sig);

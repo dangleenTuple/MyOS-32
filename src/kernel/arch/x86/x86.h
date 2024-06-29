@@ -3,14 +3,14 @@
 
 #include "../../runtime/types.h"
 
-#define IDTSIZE		0xFF	/* nombre max. de descripteurs dans la table */
-#define GDTSIZE		0xFF	/* nombre max. de descripteurs dans la table */
+#define IDTSIZE		0xFF	/* Maximum Number of Descriptors in the Interrupt Descriptor Table (IDT) */
+#define GDTSIZE		0xFF	/* Maximum Number of Descriptors in the Global Descriptor Table (GDT) */
 
-#define IDTBASE		0x00000000	/* addr. physique ou doit resider la IDT */
-#define GDTBASE		0x00000800	/* addr. physique ou doit resider la gdt */
+#define IDTBASE		0x00000000	/* The physical address of the Interrupt Descriptor Table (IDT) */
+#define GDTBASE		0x00000800	/* The physical address of the Global Descriptor Table (GDT) */
 
-#define INTGATE  0x8E00		/* utilise pour gerer les interruptions */
-#define TRAPGATE 0xEF00		/* utilise pour faire des appels systemes */
+#define INTGATE  0x8E00		/* used to handle interruptions */
+#define TRAPGATE 0xEF00		/* used to make system calls */
 
 #define	KERN_PDIR			0x00001000
 #define	KERN_STACK			0x0009FFF0
@@ -43,7 +43,7 @@
 #define	RAM_MAXSIZE			0x100000000
 #define	RAM_MAXPAGE			0x100000
 
-/* Descripteur de segment */
+/* Segment Descriptor */
 struct gdtdesc {
 	u16 lim0_15;
 	u16 base0_15;
@@ -54,7 +54,7 @@ struct gdtdesc {
 	u8 base24_31;
 } __attribute__ ((packed));
 
-/* Registre GDTR */
+/* GDT register */
 struct gdtr {
 	u16 limite;
 	u32 base;
@@ -80,7 +80,7 @@ struct tss {
 	u16 debug_flag, io_map;
 } __attribute__ ((packed));
 
-/* Descripteur de segment */
+/* Segment descriptor */
 struct idtdesc {
 	u16 offset0_15;
 	u16 select;
@@ -88,7 +88,7 @@ struct idtdesc {
 	u16 offset16_31;
 } __attribute__ ((packed));
 
-/* Registre IDTR */
+/* IDT register */
 struct idtr {
 	u16 limite;
 	u32 base;
