@@ -1,11 +1,11 @@
 
 #include <os.h>
 
-/* dans myos quasiment tous herite de cette classe */
+/* In MyOS, almost everything inherits from this class. */
 
 
 /*
- *	Remplace dans s tous les a par to
+ *	Replaces all occurrences of 'a' with 'to' in the string s. TODO: Why would we do this?
  */
 static void strreplace(char* s,char a,char to){
 	if (s==NULL)
@@ -18,9 +18,9 @@ static void strreplace(char* s,char a,char to){
 }
 
 
-u32	File::inode_system=0;	/* numero d'inode de depart */
+u32	File::inode_system=0;	/* Starting inode number */
 
-/* constructeur */
+/* constructor */
 File::File(char* n,u8 t){
 	name=(char*)kmalloc(strlen(n)+1);
 	memset(name,0,strlen(n));
@@ -41,11 +41,11 @@ File::File(char* n,u8 t){
 	map_memory=NULL;
 }
 
-/* destructeur */
+/* destructor */
 File::~File(){
 	kfree(name);
 	
-	//on modifie la liste des frere
+	//We free the list of children
 	
 	if (prec==NULL){
 		parent->setChild(next);
@@ -64,7 +64,7 @@ File::~File(){
 		next->setPrec(prec);
 	}
 	
-	//on supprime les enfant (dossier)
+	//we delete the children (folders)
 	File* n=child;
 	File* nn=NULL;
 	while (n!=NULL){
@@ -76,7 +76,7 @@ File::~File(){
 	
 }
 
-#define CAR_REPLACE '_'
+#define CAR_REPLACE '_' //I think this is supposed to be 'CHAR_REPLACE'
 
 
 void File::checkName(){
@@ -230,6 +230,7 @@ stat_fs File::stat(){
 	return st;
 }
 
+//responsible for creating a memory mapping between a file and a process's virtual address space.
 u32 File::mmap(u32 sizee,u32 flags,u32 offset,u32 prot){
 	if (map_memory!=NULL){
 		int i=0;
