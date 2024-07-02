@@ -1,8 +1,9 @@
+#include "os.h"
+#include "api/dev/proc.h"
 
-#include <os.h>
-#include <api/dev/proc.h>
-
-/* Definis un process (/dev/proc) */
+/*
+ All functions that define a C++ process and aid process management will go into this file.
+ */
 
 char* Process::default_tty="/dev/tty";
 
@@ -10,7 +11,7 @@ u32 Process::proc_pid=0;
 
 Process::~Process(){
 	delete ipc;
-	arch.change_process_father(this,pparent);	//on change le pere des enfants	
+	arch.change_process_father(this,pparent);	//we change the father of the children
 }
 
 Process::Process(char* n) : File(n,TYPE_PROCESS)

@@ -4,7 +4,7 @@
 
 #include "file.h"
 #include "../runtime/list.h"
-#include "../arch/x86/archprocess.h"	/* definition de process_st */
+#include "../arch/x86/archprocess.h"	/* definition of process_st in archprocess.h*/
 
 #include "signal.h"
 
@@ -15,11 +15,17 @@
 #define ZOMBIE	PROC_STATE_ZOMBIE
 #define CHILD	PROC_STATE_RUN
 
+// Since processes are loaded from executable files when created, this header (`process.h`) tracks files associated with processes.
+
+// Note: Not all files are directly tied to a specific process. There can be system-wide
+// files like configuration files or log files that are not owned by any particular process but can
+// be accessed by multiple processes with appropriate permissions.
+
 struct openfile
 {
-	u32				mode;	/* Mode d'ouverture */
-	u32				ptr;	/* Pointeur de lecture/ecriture */
-	File*			fp;		/* Fichier ouvert */
+	u32				mode;	/* Opening mode (read only/read-write/append)  */
+	u32				ptr;	/* Pointer for reading/writing */
+	File*			fp;		/* File pointer */
 };
 
 class Process : public File
