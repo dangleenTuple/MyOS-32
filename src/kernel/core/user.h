@@ -8,7 +8,7 @@
 
 enum {
 	USER_ROOT,	//root
-	USER_NORM	//utilisateur normal
+	USER_NORM	//normal user
 };
 
 class User : public File

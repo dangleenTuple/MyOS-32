@@ -1,7 +1,7 @@
 #ifndef __MY_BOOT__
 #define __MY_BOOT__
 
-#include <runtime/types.h>
+#include "../runtime/types.h"
 
 struct multiboot_info {
 	u32 flags;

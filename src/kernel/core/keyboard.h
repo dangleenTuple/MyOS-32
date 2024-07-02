@@ -3,7 +3,7 @@
 #ifndef __KBD__
 #define __KBD__
 
-#include <api/dev/tty.h>
+#include "api/dev/tty.h"
 
 char kbdmap_default[] = {
 	KEY_ESCAPE, KEY_ESCAPE, KEY_ESCAPE, KEY_ESCAPE,	/*      esc     (0x01)  */

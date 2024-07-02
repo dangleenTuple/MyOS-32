@@ -4,7 +4,7 @@
 
 #include "file.h"
 #include "../runtime/list.h"
-#include "../arch/x86/archprocess.h"	/* definition of process_st in archprocess.h*/
+#include "../arch/x86/archprocess.h"	/* definition of process_st (the process struct) in archprocess.h*/
 
 #include "signal.h"
 
