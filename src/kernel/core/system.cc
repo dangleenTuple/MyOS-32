@@ -1,16 +1,15 @@
-
-#include <os.h>
+#include "os.h"
 
 /**
- *	10/04/06 (Samy Pess�) : creation du fichier
- *							ajout gestion login et variable d'environnement
- *	10/04/07 (Samy Pess�) : la classe System gere maintenant une liste chain� des utilisateur (User)
- **/
- 
+ *   10/04/06 (Samy Pess�) : creation of the file
+ *                           added login management and environment variable
+ *   10/04/07 (Samy Pess�) : the System class now manages a linked list of users (User)
+ **/
+ 
 
 
 /*
-Cette classe organise le systeme en lui meme : utilisateur, variable, ...
+This class organizes the system itself: user, variable, ...
 */
 
 System::System(){
@@ -46,13 +45,13 @@ void System::init(){
 	new Variable("SHELL","/bin/sh");
 }
 
-//fonction de login
+// Login function
 int	System::login(User* us,char* pass){
 	if (us==NULL)
 		return ERROR_PARAM;
-	if (us->getPassword() != NULL){	//si il ya un password
+	if (us->getPassword() != NULL){	//Check if the user has a password set
 		
-		if (pass==NULL)	//si on a pass� un code
+		if (pass==NULL)	//Check if the provided password is NULL
 			return PARAM_NULL;
 			//
 		if (strncmp(pass,us->getPassword(),strlen(us->getPassword())))	//test password
@@ -65,7 +64,7 @@ int	System::login(User* us,char* pass){
 	return RETURN_OK;
 }
 
-/* ne pas oubliez de faire un free de la variable */
+/* don't forget to free the memory used by the variable */
 char* System::getvar(char* name){
 	char* varin;
 	File* temp=var->find(name);
