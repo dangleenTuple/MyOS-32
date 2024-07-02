@@ -1,4 +1,14 @@
-#include <os.h>
+#include "os.h"
+
+//TODO: I am not sure if the elf file contains everything in this project. It doesn't include all of the device drivers (but some of them...)
+
+/*
+ELF (Executable and Linkable Format) is a file format for executables, libraries, and other code elements.
+
+For example: When you compile a C program, the resulting object file gets linked with libraries and other object files to create an ELF file.
+This ELF file can then be loaded and executed by the operating system.
+*/
+
 
 /*
 External module loader in elf32 format:
@@ -90,6 +100,7 @@ u32 load_elf(char *file,process_st *proc)
 /*
  * Load a file by creating a new process
  * (TODO: Shouldn't execv replace the running program with a new one within the same process? Idk if it has much to with loading a file)
+ * (TODO: Why is this function in the elf loader?)
  */
 int execv(char* file,int argc,char** argv){
 	char* map_elf=NULL;
