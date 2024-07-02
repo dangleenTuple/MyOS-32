@@ -1,17 +1,16 @@
 #include <os.h>
 
 /*
-Chargeur de module externe au format elf32 :
-pour le moment compilé en static sans librairies partagés */
+External module loader in elf32 format:
+currently compiled statically without shared libraries */
 
 
-char* __default_proc_name="_proc_";	/* nom par default avec en plus un nombre */
+char* __default_proc_name="_proc_";	/* Default name with a number added */
 char 	nb_default='0';
 
- 
-/* 
- * Teste si le fichier dont l'adresse est passee en argument
- * est au format ELF
+/*
+ * Checks if the file whose address is passed as an argument
+ * is in ELF format
  */
 int is_elf(char *file)
 {
@@ -26,7 +25,7 @@ int is_elf(char *file)
 }
 
 /*
- *	Charge le fichier elf dans la memoire virtuelle et renvoie l'adresse de depart
+ *	Loads the ELF file into virtual memory and returns the starting address
  */
 u32 load_elf(char *file,process_st *proc)
 {
@@ -62,14 +61,14 @@ u32 load_elf(char *file,process_st *proc)
 				return 0;
 			}
 
-			// Description de la zone exec + rodata 
-			if (p_entry->p_flags == PF_X + PF_R) {	
+			// Description of the executable and read-only data section (exec + rodata)
+			if (p_entry->p_flags == PF_X + PF_R) { // TODO: Should this be BITWISE OR?
 				proc->b_exec = (char*) v_begin;
 				proc->e_exec = (char*) v_end;
 			}
 
-			// Description de la zone bss 
-			if (p_entry->p_flags == PF_W + PF_R) {	
+			// Description of the bss section
+			if (p_entry->p_flags == PF_W + PF_R) { // TODO: Same as above ^ (More specifically, should it be PF_W | PF_R?)
 				proc->b_bss = (char*) v_begin;
 				proc->e_bss = (char*) v_end;
 			}
@@ -89,7 +88,8 @@ u32 load_elf(char *file,process_st *proc)
 }
 
 /*
- *	Charge un fichier en creant un nouveau processus
+ * Load a file by creating a new process
+ * (TODO: Shouldn't execv replace the running program with a new one within the same process? Idk if it has much to with loading a file)
  */
 int execv(char* file,int argc,char** argv){
 	char* map_elf=NULL;
@@ -118,7 +118,7 @@ int execv(char* file,int argc,char** argv){
 }
 
 /*
- *	Charge un module
+ *	Load a module
  */
 void execv_module(u32 entry,int argc,char** argv){
 	char* name;
