@@ -1,25 +1,24 @@
-
-#include <os.h>
+#include "os.h"
 
 /*
-Cette classe organise les fichiers entre eux
+This class organizes the files within the system.
 */
 
-Filesystem::Filesystem(){
+Filesystem::Filesystem() {
 
 }
 
-void Filesystem::init(){
-	root=new File("/",TYPE_DIRECTORY);
-	
-	dev=root->createChild("dev",TYPE_DIRECTORY);		//dossier contenant les peripherique
-	root->createChild("proc",TYPE_DIRECTORY);			//dossier contenant les processus tournant
-	root->createChild("mnt",TYPE_DIRECTORY);			//dossier contenant les points de montages des disques
-	File* sysd=root->createChild("sys",TYPE_DIRECTORY);	//dossier contenant toutes les infos du systemes
-		var=sysd->createChild("env",TYPE_DIRECTORY);		//dossier contenant toutes les variables d'environnement
-		sysd->createChild("usr",TYPE_DIRECTORY);		//dossier contenant tous les utilisateurs
-		sysd->createChild("mods",TYPE_DIRECTORY);		//dossier contenant tous les modules disponiles
-		sysd->createChild("sockets",TYPE_DIRECTORY);	//dossier contenant tous les sockets actuels
+void Filesystem::init() {
+  root = new File("/", TYPE_DIRECTORY);
+
+  dev = root->createChild("dev", TYPE_DIRECTORY);       // directory containing peripherals
+  root->createChild("proc", TYPE_DIRECTORY);           // directory containing running processes
+  root->createChild("mnt", TYPE_DIRECTORY);           // directory containing disk mount points
+  File* sysd = root->createChild("sys", TYPE_DIRECTORY); // directory containing system information
+    var = sysd->createChild("env", TYPE_DIRECTORY);     // directory containing environment variables
+    sysd->createChild("usr", TYPE_DIRECTORY);           // directory containing all users
+    sysd->createChild("mods", TYPE_DIRECTORY);           // directory containing available modules
+    sysd->createChild("sockets", TYPE_DIRECTORY);       // directory containing all current sockets
 }
 
 Filesystem::~Filesystem(){
@@ -44,7 +43,7 @@ File* Filesystem::path(char* p){
 	if (p[0]=='/')
 		fp=root;
 	else{
-		if (arch.pcurrent!=NULL)		/* prend de le dossier actuel du fichier */
+		if (arch.pcurrent!=NULL)		/* Get the current directory from the current file object */
 			fp=(arch.pcurrent)->getCurrentDir();
 	}
 	beg_p = p;
@@ -98,7 +97,7 @@ File* Filesystem::pivot_root(File* targetdir){
 	  File* mainChild = targetdir->getChild();
 	  newRoot->addChild(mainChild);
 	  s8 i, ii = 0;
-	  File* tempChild = mainChild->getPrec(); //Est que File doit être initialisé ? ou pas ?
+	  File* tempChild = mainChild->getPrec(); //Should the File object be initialized? Or not?
 	      do
 	      {
 		  if(tempChild == NULL)
