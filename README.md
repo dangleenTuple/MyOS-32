@@ -68,7 +68,7 @@ that are necessary such as a Buffer (replacement for std::vector, so a dynamic a
 
 ## MODULES
 
-This is where we are putting all of our device drivers and the controllers for them.
+A kernel module is anything that can be loaded or unloaded at runtime (without ever needing a reboot). So, this is where we are putting all of our device drivers and the controllers for them.
 
 The way this works is we are using a global "module_builder" array. At runtime, the module controller loads the necessary drivers, likely based on configuration or user selection. The controller then interacts with these drivers to perform various tasks related to the specific hardware they manage.
 
