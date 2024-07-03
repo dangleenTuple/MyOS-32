@@ -4,7 +4,7 @@
 
 #include "../runtime/types.h"
 #include "../core/file.h"
-#include "../io.h"
+#include "../arch/x86/io.h"
 
 //Master Boot Record Location
 #define DOS_PART_1	0x01BE

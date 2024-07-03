@@ -21,8 +21,10 @@ void Architecture::init(){
 	 io.print("Loading GDT \n");
 	 init_gdt();
 
-	 asm("	movw $0x18, %%ax \n \ //segment selector of 0x18 for kernel stack segment in GDT
-		movw %%ax, %%ss \n \  //copy ax content in ss register (default segment for stack memory)
+	//segment selector of 0x18 for kernel stack segment in GDT
+	//copy ax content in ss register (default segment for stack memory)
+	 asm("	movw $0x18, %%ax \n \
+		movw %%ax, %%ss \n \
 		movl %0, %%esp"::"i" (KERN_STACK)); //%0 (symbolic reference resolved to KERN_STACK during compilation) into ESP register (top of the kernel stack)
 
 	 io.print("Loading IDT \n");

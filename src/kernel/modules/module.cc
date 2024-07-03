@@ -1,16 +1,13 @@
-//We will be referencing the macro that defines module_builder, an array that points to module_class objects
 #include "../core/os.h"
-
-
 #include "../core/file.h"
 #include "../runtime/alloc.h"
 #include "../runtime/libc.h"
 #include "../core/filesystem.h"
 #include "module.h"
-
 /* Inclusion of the module list */
 #include "modules.conf"
 
+//We will be referencing the macro that defines module_builder, an array that points to module_class objects
 Module::Module(){
 
 }
@@ -21,12 +18,11 @@ Module::~Module(){
 
 // Allocate memory for every node in the module_builder list
 void Module::initLink(){
-    int i=0;
-    ModLink* mod;
-    while (i < module_builder.size() && module_builder[i] != nullptr){
-        mod=new ModLink(module_builder[i]->module_name);
-        i++;
-    }
+	int i=0;
+	ModLink* mod;
+	while (i < sizeof(module_builder)/sizeof(module_builder[0]) && module_builder[i] != NULL){
+		mod=new ModLink(module_builder[i++]->module_name);
+	}
 }
 
 
@@ -34,7 +30,7 @@ File* Module::createDevice(char* name,char* module,u32 flag){
 	int i=0;
 	//File pointer
 	File* fp;
-	while (module_builder[i] != 0){
+	while (module_builder[i] != NULL && module_builder[i] != 0){
 		if (!strcmp(module_builder[i]->module_name,module)){
 			if (module_builder[i]->module_type==MODULE_DEVICE){
 				fp=module_builder[i]->drive(name,flag,NULL);
@@ -53,7 +49,7 @@ File* Module::mount(char* dev,char* dir,char* module,u32 flag){
 		return NULL;
 	int i=0;
 	File* fp;
-	while (module_builder[i] != 0){
+	while (module_builder[i] != NULL && module_builder[i] != 0){
 		if (!strcmp(module_builder[i]->module_name,module)){
 			fp=module_builder[i]->drive(dir,flag,fdev);
 
@@ -79,7 +75,7 @@ File* Module::install(char* dir,char* module,u32 flag,char* dev){
 		return NULL;
 	int i=0;
 	File* fp;
-	while (module_builder[i] != 0){
+	while (module_builder[i] != NULL && module_builder[i] != 0){
 
 		// TODO: We only have the functionality of filesystem modules. We need to finish
                 // writing the other modules.

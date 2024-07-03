@@ -1,13 +1,10 @@
 #include "os.h"
 
-/**
- *   10/04/06 (Samy Pess�) : creation of the file
+/*
+ *   10/04/06 (Samy Pess) : creation of the file
  *                           added login management and environment variable
- *   10/04/07 (Samy Pess�) : the System class now manages a linked list of users (User)
- **/
- 
-
-
+ *   10/04/07 (Samy Pess) : the System class now manages a linked list of users (User)
+ */
 /*
 This class organizes the system itself: user, variable, ...
 */
