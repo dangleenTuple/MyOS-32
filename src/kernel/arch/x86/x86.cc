@@ -1,6 +1,7 @@
 #include "../../core/os.h"
 #include "x86.h"
 #include "../../core/keyboard.h"
+#include "architecture.h"
 
 /*
 In rare cases, you might want to use the GDT for specific memory organization beyond what virtual memory with paging offers.
@@ -294,7 +295,12 @@ void isr_schedule_int()
 		sec++;
 		tic = 0;
 	}
+
+	//To prevent nested interrupts, let's disable interrupts to let scheduler finish whatever it was doing
+	arch.disable_interrupt();
 	schedule();
+	//Resume activity!
+	arch.enable_interrupt();
 	io.outb(0x20,0x20);
 	io.outb(0xA0,0x20);
 }
@@ -421,84 +427,62 @@ void init_pic(void)
 #define DEBUG_REG(a) io.print("  %s : %x",#a,p->regs.a)
 
 void schedule(){
-	Process* pcurrent=arch.pcurrent;
-	Process*plist=arch.plist;
-	if (pcurrent==0)
-		return;
+        Process* pcurrent=arch.pcurrent;
+        Process* plist=arch.plist;
+        if (pcurrent==0)
+                return;
 
-	if (pcurrent->getPNext() == 0 && plist==pcurrent)	//if pcurrent is the only node in the list (potentially an empty list)
-		return;
+        if (pcurrent->getPNext() == 0 && plist==pcurrent)       //if pcurrent is the only node in the list then do nothing (potentially an empty list)
+                return;
 
-	process_st* current=pcurrent->getPInfo();
-	process_st *p;
-	int i, newpid;
+        process_st* pcurrentInfo=pcurrent->getPInfo();
 
-	/* Store the pointer to the saved registers in stack_ptr */
-	asm("mov (%%ebp), %%eax; mov %%eax, %0": "=m"(stack_ptr):);
-	//asm("mov (%%eip), %%eax; mov %%eax, %0": "=m"(current->regs.eip):);
-	//io.print("stack_ptr : %x \n",stack_ptr);
-		/* Save the registers of the current process */
-		current->regs.eflags = stack_ptr[16];
-		current->regs.cs = stack_ptr[15];
-		current->regs.eip = stack_ptr[14];
-		current->regs.eax = stack_ptr[13];
-		current->regs.ecx = stack_ptr[12];
-		current->regs.edx = stack_ptr[11];
-		current->regs.ebx = stack_ptr[10];
-		current->regs.ebp = stack_ptr[8];
-		current->regs.esi = stack_ptr[7];
-		current->regs.edi = stack_ptr[6];
-		current->regs.ds = stack_ptr[5];
-		current->regs.es = stack_ptr[4];
-		current->regs.fs = stack_ptr[3];
-		current->regs.gs = stack_ptr[2];
+        /* Store the pointer to the saved registers in stack_ptr */
 
-	
-		/*
-		 Save the contents of the stack registers (ss, esp) at the time of the interrupt.
-		 This is necessary because the processor may or may not stack these values depending on the context of the interrupt.
-		 */
-		if (current->regs.cs != 0x08) {	/* User mode */
-			current->regs.esp = stack_ptr[17];
-			current->regs.ss = stack_ptr[18];
-		} else {	/* during a system call */
-			current->regs.esp = stack_ptr[9] + 12;	/* equal to &stack_ptr[17] */
-			current->regs.ss = default_tss.ss0;
-		}
+       
+        asm("mov (%%ebp), %%eax; mov %%eax, %0": "=m"(stack_ptr):);
+       // asm("mov (%%eip), %%eax; mov %%eax, %0": "=m"(pcurrentInfo->regs.eip):);
+        /* Save the registers of the pcurrentInfo */
+        pcurrentInfo->regs.eflags = stack_ptr[16];
+        pcurrentInfo->regs.cs = stack_ptr[15];
+        pcurrentInfo->regs.eip = stack_ptr[14];
+        pcurrentInfo->regs.eax = stack_ptr[13];
+        pcurrentInfo->regs.ecx = stack_ptr[12];
+        pcurrentInfo->regs.edx = stack_ptr[11];
+        pcurrentInfo->regs.ebx = stack_ptr[10];
+        pcurrentInfo->regs.ebp = stack_ptr[8];
+        pcurrentInfo->regs.esi = stack_ptr[7];
+        pcurrentInfo->regs.edi = stack_ptr[6];
+        pcurrentInfo->regs.ds = stack_ptr[5];
+        pcurrentInfo->regs.es = stack_ptr[4];
+        pcurrentInfo->regs.fs = stack_ptr[3];
+        pcurrentInfo->regs.gs = stack_ptr[2];
 
-		/* Save the TSS of the old process */
-		current->kstack.ss0 = default_tss.ss0;
-		current->kstack.esp0 = default_tss.esp0;
-	
-	//io.print("schedule %s ",pcurrent->getName());
-	pcurrent=pcurrent->schedule();
-	p = pcurrent->getPInfo();
 
-	//io.print("to %s \n",pcurrent->getName());
-	/*DEBUG_REG(eax);
-	DEBUG_REG(ebx);
-	DEBUG_REG(ecx);
-	DEBUG_REG(edx);*/
-	/*DEBUG_REG(esp); io.print("\t");
-	DEBUG_REG(ebp);	io.print("\n");*/
-	//DEBUG_REG(esi);
-	//DEBUG_REG(edi);
-	//DEBUG_REG(eip);	io.print("\t");
-	/*DEBUG_REG(eflags);
-	DEBUG_REG(cs);
-	DEBUG_REG(ss);
-	DEBUG_REG(ds);
-	DEBUG_REG(es);
-	DEBUG_REG(fs);
-	DEBUG_REG(gs);
-	DEBUG_REG(cr3);
-	io.print("\n");*/
-	
-	/* Commutation */
-	if (p->regs.cs != 0x08)
-		switch_to_task(p, USERMODE);
-	else
-		switch_to_task(p, KERNELMODE);
+        /*
+        Save the contents of the stack registers (ss, esp) at the time of the interrupt.
+        This is necessary because the processor may or may not stack these values depending on the context of the interrupt.
+        */
+        if (pcurrentInfo->regs.cs != 0x08) { /* User mode */
+                pcurrentInfo->regs.esp = stack_ptr[17];
+                pcurrentInfo->regs.ss = stack_ptr[18];
+        } else {        /* during a system call */
+                pcurrentInfo->regs.esp = stack_ptr[9] + 12;  /* equal to &stack_ptr[17] */
+                pcurrentInfo->regs.ss = default_tss.ss0;
+        }
+
+        /* Save the TSS of the old process */
+        pcurrentInfo->kstack.ss0 = default_tss.ss0;
+        pcurrentInfo->kstack.esp0 = default_tss.esp0;
+
+        // Select the next process
+        Process *pNext = pcurrent->schedule();
+
+        /* Context switch */
+        if (pNext->getPInfo()->regs.cs != 0x08)
+                switch_to_task(pNext->getPInfo(), USERMODE);
+        else
+                switch_to_task(pNext->getPInfo(), KERNELMODE);
 }
 
 /* 

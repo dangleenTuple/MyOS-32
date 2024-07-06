@@ -13,7 +13,7 @@
 #include "api/dev/proc.h"
 
 #define ZOMBIE	PROC_STATE_ZOMBIE
-#define CHILD	PROC_STATE_RUN
+#define ACTIVE	PROC_STATE_RUN
 
 // Since processes are loaded from executable files when created, this header (`process.h`) tracks files associated with processes.
 

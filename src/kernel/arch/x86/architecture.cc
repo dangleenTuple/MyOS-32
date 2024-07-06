@@ -44,10 +44,7 @@ void Architecture::init(){
 */
 void Architecture::initProc(){
 	firstProc= new Process("kernel");
-	firstProc->setState(ZOMBIE); //ZOMBIE = process that has been terminated but not cleaned up
-	firstProc->addFile(fsm.path("/dev/tty"),0);
-	firstProc->addFile(fsm.path("/dev/tty"),0);
-	firstProc->addFile(fsm.path("/dev/tty"),0);
+	firstProc->setState(ACTIVE); //ZOMBIE = process that has been terminated but not cleaned up
 
 	plist=firstProc;
 	pcurrent=firstProc;

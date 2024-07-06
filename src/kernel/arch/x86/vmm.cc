@@ -201,8 +201,6 @@ extern "C" {
 		INIT_LIST_HEAD(&kern_free_vm);
 		list_add(&p->list, &kern_free_vm);
 
-		arch.initProc();
-
 		return;
 	}
 

@@ -133,7 +133,7 @@ Process* Process::getPNext(){
 u32 Process::create(char* file, int argc, char **argv){
 	int ret=arch.createProc(&info,file,argc,argv);
 	if (ret==1)
-		setState(CHILD);
+		setState(ACTIVE);
 	else
 		setState(ZOMBIE);
 		
@@ -195,31 +195,39 @@ void Process::deleteFile(u32 fd){
 	openfp[fd].ptr=0;
 }
 
+
 Process* Process::schedule(){
-	Process* n=this;
-	int out=1;
-	n=n->getPNext();
-	while (out){
-		
-		if (n==NULL){
-			n=arch.plist;
-		}
-		//io.print("testing %s\n",n->getName());
-		
-		
-		if (n->getState() !=ZOMBIE){
-			out=0;
-		}
-		else{
-			n=n->getPNext();
-		}
-		
-	}
-	
-	arch.pcurrent=n;
-	
-	return n;
+    Process* start_process = this;
+    Process* n = this->getPNext();
+ 
+    // Check for special case: current process at end, next is starting process
+    if(!n && arch.plist && arch.plist != start_process)
+    {
+        n = arch.plist; // Start from the beginning
+    }
+
+    while (n && n != start_process) {
+        if (n->getState() != ZOMBIE) {
+            break;
+        }
+        n = n->getPNext();
+
+        if(!n)
+        {
+            n = arch.plist; // Wrap around if n reaches NULL
+        }
+    }
+
+    // Handle the case where n is NULL or equal to start_process (all processes are zombies)
+    if (!n || n == start_process) {
+        // Implement appropriate action
+        return NULL;
+    }
+
+    arch.pcurrent = n;
+    return n;
 }
+
 
 
 File* Process::getCurrentDir(){
