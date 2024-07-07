@@ -26,17 +26,19 @@ static void load_modules(multiboot_info* mbi){
 
 /* the main of the kernel */
 extern "C" void kmain(multiboot_info* mbi){
-	io.clear();
-	io.print("%s - %s -- %s %s \n",	KERNEL_NAME,
-									KERNEL_VERSION,
-									KERNEL_DATE,
-									KERNEL_TIME);
-	//Initialize everything! First, archiecture in arch/x86
-	io.print("%s \n",KERNEL_LICENCE);
+	//Initialize everything!
+	//archiecture in arch/x86
 	arch.init();
 	//The virtual memory
-	io.print("Loading Virtual Memory Management \n");
-	vmm.init(mbi->high_mem);
+        vmm.init(mbi->high_mem);
+
+	//We cannot print anything until memory has been established
+        io.clear();
+        io.print("%s - %s -- %s %s \n", KERNEL_NAME,
+                                                                        KERNEL_VERSION,
+                                                                        KERNEL_DATE,
+                                                                        KERNEL_TIME);
+      	io.print("%s \n",KERNEL_LICENCE);
 	//File system management
 	io.print("Loading FileSystem Management \n");
 	fsm.init();
@@ -59,7 +61,7 @@ extern "C" void kmain(multiboot_info* mbi){
 	modm.install("hda3","module.dospartition",3,"/dev/hda");
 	modm.mount("/dev/hda0","boot","module.ext2",NO_FLAG);
 
-	arch.initProc();
+	//arch.initProc();
 	
 	io.print("Loading binary modules \n");
 	load_modules(mbi);

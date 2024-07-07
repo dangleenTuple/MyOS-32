@@ -160,9 +160,12 @@ void Io::setXY(char xc,char yc){
 
 /* clear screen */
 void Io::clear(){
-	x=0;
-	y=0;
-	memset((char*)RAMSCREEN,0,SIZESCREEN);
+    x=0;
+    y=0;
+    char* screenZero = (char*)RAMSCREEN;
+    for (int i = 0; i < SIZESCREEN; ++i) {
+        screenZero[i] = 0;
+    }
 }
 
 /* put a string in screen */

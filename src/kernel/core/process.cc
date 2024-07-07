@@ -198,6 +198,13 @@ void Process::deleteFile(u32 fd){
 
 Process* Process::schedule(){
     Process* start_process = this;
+
+    io.print("MADE IT TO PROCESS SCHEDULE");
+    //Null check before we continue.
+    if(!start_process)
+	return NULL;
+
+    io.print("PROCESS NOT NULL");
     Process* n = this->getPNext();
  
     // Check for special case: current process at end, next is starting process

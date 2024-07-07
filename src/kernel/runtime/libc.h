@@ -2,11 +2,12 @@
 #define LIBC_H
 
 #include <stdarg.h>
+#include "types.h"
 
 extern "C" {
 	void 	itoa(char *buf, unsigned long int n, int base);
-	void *	memset(char *dst,char src, int n);
-	void *	memcpy(char *dst, char *src, int n);
+	void *	memset(void *dst, void *src, size_t n);
+	void *	memcpy(void *dst, void *src, size_t n);
 	int 	strlen(char *s);
 	int 	strcmp(const char *dst, char *src);
 	int 	strcpy(char *dst,const char *src);

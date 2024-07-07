@@ -16,25 +16,20 @@ char* Architecture::detect(){
 
 /* Start and initialize the architecture */
 void Architecture::init(){
-	 io.print("Architecture x86, cpu=%s \n", detect());
+	 //io.print("Architecture x86, cpu=%s \n", detect());
+	 detect();
 
-	 io.print("Loading GDT \n");
-	 init_gdt();
+	 //io.print("Loading GDT \n");
+         init_gdt();
 
-	//segment selector of 0x18 for kernel stack segment in GDT
-	//copy ax content in ss register (default segment for stack memory)
-	 asm("	movw $0x18, %%ax \n \
-		movw %%ax, %%ss \n \
-		movl %0, %%esp"::"i" (KERN_STACK)); //%0 (symbolic reference resolved to KERN_STACK during compilation) into ESP register (top of the kernel stack)
-
-	 io.print("Loading IDT \n");
+	 //io.print("Loading IDT \n");
 	 init_idt();
 
 
-	 io.print("Configure PIC \n");
+	 //io.print("Configure PIC \n");
 	 init_pic();
 
-	 io.print("Loading Task Register \n");
+	 //io.print("Loading Task Register \n");
 	 asm("	movw $0x38, %ax; ltr %ax"); // move 0x38 in ax, then load task register (ltr)  with value in ax
 }
 
@@ -45,6 +40,7 @@ void Architecture::init(){
 void Architecture::initProc(){
 	firstProc= new Process("kernel");
 	firstProc->setState(ACTIVE); //ZOMBIE = process that has been terminated but not cleaned up
+	firstProc->addFile(fsm.path("/dev/tty"),0);
 
 	plist=firstProc;
 	pcurrent=firstProc;
