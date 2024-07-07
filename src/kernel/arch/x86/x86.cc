@@ -125,11 +125,19 @@ void init_gdt(void)
 	kgdtr.limite = GDTSIZE * 8;
 	kgdtr.base = GDTBASE;
 
+
+
 	/* copy the gdtr to its memory area */
-	memcpy((char *) kgdtr.base, (char *) kgdt, kgdtr.limite);
+	memcpy((void *)kgdtr.base, (void *)&kgdt, kgdtr.limite);
 
 	/* load the gdtr registry */
 	asm("lgdtl (kgdtr)");
+
+	// Set kernel stack pointer using the GDT selector
+        asm("  movw $0x18, %%ax \n \
+               movw %%ax, %%ss \n \
+               movl %0, %%esp"::"i" (KERN_STACK));
+
 
 	/* init the segments */
 	asm("   movw $0x10, %ax	\n \
